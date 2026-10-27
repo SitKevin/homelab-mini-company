@@ -1,0 +1,14 @@
+cat > .gitignore << 'EOF'
+# Secrets
+*.pem
+*.key
+id_*
+.env
+*vault_pass*
+secrets/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+EOF
