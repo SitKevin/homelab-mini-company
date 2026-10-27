@@ -1,0 +1,26 @@
+// /etc/bind/named.conf.options  (bastion)
+// Recursive resolver for the internal network only.
+
+acl "trusted" {
+    127.0.0.1;
+    192.168.196.0/24;
+};
+
+options {
+    directory "/var/cache/bind";
+
+    listen-on { 127.0.0.1; 192.168.196.10; };
+    listen-on-v6 { none; };
+
+    allow-query     { trusted; };   // no open resolver (DNS amplification)
+    recursion yes;
+    allow-recursion { trusted; };
+    allow-transfer  { none; };      // no zone transfers
+
+    // VMware NAT DNS (192.168.196.2) does not pass DNSSEC data -> SERVFAIL.
+    // Use DNSSEC-capable public resolvers instead.
+    forwarders { 1.1.1.1; 9.9.9.9; };
+    forward only;
+
+    dnssec-validation auto;
+};

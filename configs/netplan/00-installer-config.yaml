@@ -1,0 +1,15 @@
+# /etc/netplan/00-installer-config.yaml  (example: web01)
+# Change the address per host: bastion .10, web01 .11, db01 .12, mon01 .13
+network:
+  version: 2
+  ethernets:
+    ens33:
+      dhcp4: false
+      addresses:
+        - 192.168.196.11/24
+      routes:
+        - to: default
+          via: 192.168.196.2
+      nameservers:
+        addresses: [192.168.196.10]   # BIND9 on bastion
+        search: [homelab.internal]

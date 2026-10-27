@@ -69,8 +69,8 @@ flowchart LR
 ### Phase 1 — Foundation
 - [x] Build a template VM and clone it
 - [x] Configure static IPs and hostnames
-- [ ] Internal DNS resolution
-- [ ] SSH key authentication (bastion → all nodes)
+- [x] Internal DNS resolution (BIND9 on bastion, `homelab.internal`, DNSSEC-validating forwarders)
+- [x] SSH key authentication (bastion → all nodes, Windows → all nodes via ProxyJump)
 - [ ] Hardening: disable password login, UFW, fail2ban
 
 ### Phase 2 — Services

@@ -1,0 +1,15 @@
+; /etc/bind/zones/db.192.168.196  - reverse zone (IP -> name)
+$TTL 3600
+@   IN  SOA ns1.homelab.internal. admin.homelab.internal. (
+        2026102701  ; Serial
+        3600        ; Refresh
+        900         ; Retry
+        604800      ; Expire
+        300 )       ; Negative cache TTL
+
+    IN  NS  ns1.homelab.internal.
+
+10  IN  PTR  bastion.homelab.internal.
+11  IN  PTR  web01.homelab.internal.
+12  IN  PTR  db01.homelab.internal.
+13  IN  PTR  mon01.homelab.internal.

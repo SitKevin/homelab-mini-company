@@ -1,0 +1,16 @@
+; /etc/bind/zones/db.homelab.internal  - forward zone (name -> IP)
+$TTL 3600
+@   IN  SOA ns1.homelab.internal. admin.homelab.internal. (
+        2026102701  ; Serial (YYYYMMDDNN) - increment on every change
+        3600        ; Refresh
+        900         ; Retry
+        604800      ; Expire
+        300 )       ; Negative cache TTL
+
+    IN  NS  ns1.homelab.internal.
+
+ns1      IN  A   192.168.196.10
+bastion  IN  A   192.168.196.10
+web01    IN  A   192.168.196.11
+db01     IN  A   192.168.196.12
+mon01    IN  A   192.168.196.13

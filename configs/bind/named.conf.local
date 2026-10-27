@@ -1,0 +1,11 @@
+// /etc/bind/named.conf.local  (bastion)
+
+zone "homelab.internal" {
+    type primary;
+    file "/etc/bind/zones/db.homelab.internal";
+};
+
+zone "196.168.192.in-addr.arpa" {
+    type primary;
+    file "/etc/bind/zones/db.192.168.196";
+};

@@ -1,0 +1,12 @@
+# Windows: %USERPROFILE%\.ssh\config
+# All internal nodes are reached through the bastion (ProxyJump).
+# Names are resolved by the bastion's internal DNS.
+
+Host bastion
+    HostName 192.168.196.10
+    User sitkevin
+
+Host web01 db01 mon01
+    HostName %h.homelab.internal
+    User sitkevin
+    ProxyJump bastion
