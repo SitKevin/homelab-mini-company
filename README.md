@@ -51,22 +51,24 @@ flowchart LR
 
 ## 🖥️ Virtual Machines
 
-| VM      | Role                          | RAM    | IP   | OS                   |
-|---------|-------------------------------|--------|------|----------------------|
-| bastion | Jump host, Ansible controller | 1 GB   | .10  | Ubuntu Server LTS    |
-| web01   | Nginx reverse proxy + app     | 1.5 GB | .11  | Ubuntu Server LTS    |
-| db01    | Database                      | 1.5 GB | .12  | Ubuntu Server LTS    |
-| mon01   | Prometheus + Grafana          | 2 GB   | .13  | Ubuntu Server LTS    |
+| VM      | Role                          | RAM    | IP               | OS                  |
+|---------|-------------------------------|--------|------------------|---------------------|
+| bastion | Jump host, Ansible controller | 1 GB   | 192.168.196.10   | Ubuntu 26.04.1 LTS  |
+| web01   | Nginx reverse proxy + app     | 1.5 GB | 192.168.196.11   | Ubuntu 26.04.1 LTS  |
+| db01    | Database                      | 1.5 GB | 192.168.196.12   | Ubuntu 26.04.1 LTS  |
+| mon01   | Prometheus + Grafana          | 2 GB   | 192.168.196.13   | Ubuntu 26.04.1 LTS  |
 
-**Host:** Windows, 16 GB RAM · **Hypervisor:** VMware Workstation · **Network:** VMnet8 (NAT), static IPs, gateway `.2`
+**Host:** Windows, 16 GB RAM · **Hypervisor:** VMware Workstation · **Network:** VMnet8 (NAT) `192.168.196.0/24`, gateway/DNS `192.168.196.2`, VMware DHCP range `.128–.254` (static IPs are kept outside it)
+
+**Template VM:** `ubuntu-template` — Ubuntu 26.04.1 LTS minimal + OpenSSH, fully updated, then cleaned before cloning (machine-id, SSH host keys, MAC binding). All nodes are **full clones**.
 
 ---
 
 ## 🛣️ Roadmap
 
 ### Phase 1 — Foundation
-- [ ] Build a template VM and clone it
-- [ ] Configure static IPs and hostnames
+- [x] Build a template VM and clone it
+- [x] Configure static IPs and hostnames
 - [ ] Internal DNS resolution
 - [ ] SSH key authentication (bastion → all nodes)
 - [ ] Hardening: disable password login, UFW, fail2ban
@@ -126,14 +128,6 @@ _Coming in Phase 3 — the goal is:_
 ```bash
 ansible-playbook -i inventory site.yml
 ```
-
----
-
-## 🧠 Lessons Learned
-
-<!-- Update after each phase: problem → how I debugged it → root cause → fix -->
-
-_To be filled in as the project progresses._
 
 ---
 
