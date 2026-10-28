@@ -22,7 +22,7 @@ This project demonstrates core system administration skills:
 
 ---
 
-## 🗺️ Architecture (planned)
+## 🗺️ Architecture
 
 ```mermaid
 flowchart LR
@@ -46,7 +46,12 @@ flowchart LR
     Mon -->|alerts| Chat([Telegram / Discord])
 ```
 
-> A detailed network diagram (draw.io) will be added in `docs/diagrams/`.
+### Network diagram
+
+![Network diagram](docs/diagrams/network.png)
+
+> Editable source: [`docs/diagrams/network.drawio`](docs/diagrams/network.drawio) (open in [diagrams.net](https://app.diagrams.net)).
+> Generated from [`docs/diagrams/generate.py`](docs/diagrams/generate.py) — edit the layout there and run `python3 docs/diagrams/generate.py` so the `.drawio` and `.svg` stay in sync.
 
 ---
 
@@ -108,7 +113,7 @@ flowchart LR
 
 ### Phase 5 — Documentation
 - [ ] Finalize this README
-- [ ] Network diagram (draw.io)
+- [x] Network diagram (draw.io)
 - [ ] Runbooks
 - [ ] Postmortems
 
