@@ -1,0 +1,4 @@
+# db01: /etc/postgresql/<version>/main/pg_hba.conf  (appended at the end)
+# TYPE  DATABASE  USER   ADDRESS             METHOD
+# Only user "gitea", only database "gitea", only from web01.
+host    gitea     gitea  192.168.196.11/32   scram-sha-256

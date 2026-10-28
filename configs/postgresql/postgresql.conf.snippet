@@ -1,0 +1,11 @@
+# db01: /etc/postgresql/<version>/main/postgresql.conf  (excerpt)
+# Find the real path instead of guessing the version:
+#   sudo -u postgres psql -c 'SHOW config_file;' -c 'SHOW hba_file;'
+#
+# Listen on loopback + the private interface only (not '*'),
+# so a future extra NIC never exposes the database by accident.
+listen_addresses = 'localhost,192.168.196.12'
+
+# SSL is enabled by default on Ubuntu (snakeoil self-signed cert).
+# Gitea connects with SSL_MODE=require -> traffic web01 -> db01 is encrypted.
+ssl = on
