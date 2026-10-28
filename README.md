@@ -50,9 +50,6 @@ flowchart LR
 
 ![Network diagram](docs/diagrams/network.png)
 
-> Editable source: [`docs/diagrams/network.drawio`](docs/diagrams/network.drawio) (open in [diagrams.net](https://app.diagrams.net)).
-> Generated from [`docs/diagrams/generate.py`](docs/diagrams/generate.py) — edit the layout there and run `python3 docs/diagrams/generate.py` so the `.drawio` and `.svg` stay in sync.
-
 ---
 
 ## 🖥️ Virtual Machines
