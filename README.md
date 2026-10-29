@@ -24,27 +24,7 @@ This project demonstrates core system administration skills:
 
 ## 🗺️ Architecture
 
-```mermaid
-flowchart LR
-    Admin([Admin / Windows host]) -->|SSH key| Bastion
-    Users([LAN users]) -->|HTTPS 443<br/>git.sitkevin.duckdns.org| Web
-
-    subgraph VMnet8["VMnet8 (NAT) — gateway .2"]
-        Bastion["bastion (.10)<br/>Jump host + Ansible"]
-        Web["web01 (.11)<br/>Nginx + Gitea"]
-        DB["db01 (.12)<br/>PostgreSQL + OpenLDAP"]
-        Mon["mon01 (.13)<br/>Prometheus + Grafana"]
-    end
-
-    Bastion -->|SSH / Ansible| Web
-    Bastion -->|SSH / Ansible| DB
-    Bastion -->|SSH / Ansible| Mon
-    Web -->|SQL over TLS :5432| DB
-    Web -.->|LDAP auth| DB
-    Mon -.->|scrape metrics| Web
-    Mon -.->|scrape metrics| DB
-    Mon -->|alerts| Chat([Telegram / Discord])
-```
+![Architecture](docs/diagrams/architecture.png)
 
 ### Network diagram
 
