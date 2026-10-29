@@ -1,6 +1,6 @@
 # Phase 2 — Services (build log)
 
-> Status: steps 1–4 done (PostgreSQL, Gitea, Nginx, SSL). Step 5 (OpenLDAP) in progress.
+> Status: ✅ **complete** — PostgreSQL, Gitea, Nginx, Let's Encrypt SSL, OpenLDAP with StartTLS, Gitea LDAP login.
 
 ## Target architecture
 
@@ -8,7 +8,7 @@
 User ──HTTPS 443──> web01 (.11)  Nginx ──> Gitea 127.0.0.1:3000
                                               │
                                               ├──SQL/TLS──> db01 (.12) PostgreSQL :5432 (web01 only)
-                                              └──LDAP────> db01 (.12) OpenLDAP (planned)
+                                              └──LDAP/StartTLS──> db01 (.12) OpenLDAP :389 (web01 only)
 ```
 
 | Component  | Host  | Listens on              | Reachable from          |
@@ -16,6 +16,7 @@ User ──HTTPS 443──> web01 (.11)  Nginx ──> Gitea 127.0.0.1:3000
 | PostgreSQL | db01  | 127.0.0.1, .12 : 5432   | web01 only (ufw + pg_hba) |
 | Gitea      | web01 | 127.0.0.1 : 3000        | localhost only (Nginx)  |
 | Nginx      | web01 | 0.0.0.0 : 80, 443       | everyone in the LAN     |
+| OpenLDAP   | db01  | 0.0.0.0 : 389 (StartTLS required) | web01 only (ufw) |
 
 **Why Gitea?** Lightweight (~200–300 MB RAM, fits a 1.5 GB VM; GitLab needs ~4 GB), single Go binary, built-in LDAP support, and it will host this project's own Ansible code in Phase 3.
 
@@ -140,16 +141,77 @@ chmod 600 /etc/nginx/ssl/git.key
 
 ---
 
-## Step 5 — OpenLDAP (TODO)
+## Step 5 — OpenLDAP on db01
 
-- [ ] `slapd` on db01, base DN `dc=homelab,dc=internal` (matches the internal DNS zone), `ou=people`, `ou=groups`
-- [ ] Groups `it`, `dev`, `staff` + sample users
-- [ ] Read-only bind DN for Gitea, ufw: LDAP only from web01, StartTLS/LDAPS
-- [ ] Gitea authentication source: LDAP (via BindDN)
+Config: [`configs/ldap/`](../configs/ldap/) · VMware snapshot `before-openldap` taken first (rollback plan).
 
-## Step 6 — End-to-end test (TODO)
+### 5A — Directory structure
 
-- [ ] LDAP user logs in to Gitea over HTTPS, creates a repo, clones it
+1. `sudo apt install slapd ldap-utils` then `sudo dpkg-reconfigure slapd` → domain `homelab.internal` → base DN **`dc=homelab,dc=internal`** (matches the internal DNS zone).
+2. OUs `people`, `groups` → [`base.ldif`](../configs/ldap/base.ldif)
+3. Employees (`inetOrgPerson`) → [`users.ldif`](../configs/ldap/users.ldif). Passwords set with `ldappasswd` (stored as `{SSHA}` hashes, never in the LDIF files).
+4. Groups (`groupOfNames`) → [`groups.ldif`](../configs/ldap/groups.ldif)
+
+```
+dc=homelab,dc=internal
+├── ou=people    an, binh, chi, dung
+├── ou=groups    it (an) · dev (binh, chi) · staff (everyone)
+└── ou=services  gitea  ← read-only bind account
+```
+
+![reconfigure + base OUs](screenshots/stage2/16-ldap-reconfigure-and-base-ous.png)
+![group members + user bind](screenshots/stage2/18-ldap-group-members-and-user-bind.png)
+
+### 5B — Hardening
+
+| Measure | How | Why |
+|---|---|---|
+| Dedicated bind account | `cn=gitea,ou=services` → [`services.ldif`](../configs/ldap/services.ldif) | Gitea never holds the admin password; if `app.ini` leaks, the attacker only gets read access |
+| No anonymous read | [`acl.ldif`](../configs/ldap/acl.ldif): `to * by users read by * none` | Ubuntu's default `to * by * read` exposes the whole staff directory to anyone on the LAN |
+| Passwords unreadable | `to attrs=userPassword by self write by anonymous auth by * none` | Even the bind account can't read hashes — they are only usable to authenticate |
+| Internal CA + TLS | [`make-ca.sh`](../configs/ldap/make-ca.sh), [`tls.ldif`](../configs/ldap/tls.ldif), CA cert [`homelab-ca.crt`](../configs/ldap/homelab-ca.crt) | `.internal` can't get a Let's Encrypt cert → own CA, cert with SAN `db01.homelab.internal` |
+| TLS mandatory | `olcSecurity: tls=1` | A client that forgets StartTLS is rejected instead of sending passwords in clear text |
+| Firewall | ufw: 389/tcp from web01 only | Same pattern as PostgreSQL |
+
+> `cn=config` is changed with `sudo ldapmodify -Y EXTERNAL -H ldapi:///` — the local socket authenticates the Linux root user, so no LDAP password is needed and you can't lock yourself out with a bad ACL.
+
+**Verification**
+
+| Test | Expected | Result |
+|------|----------|--------|
+| Anonymous `ldapsearch -b dc=homelab,dc=internal` | nothing | ✅ `No such object (32)` |
+| Bind as `cn=gitea` and search `uid=binh` | uid, mail returned | ✅ |
+| Bind as `cn=gitea` and request `userPassword` | not returned | ✅ only `dn:` |
+| `ldapwhoami` **without** StartTLS | rejected | ✅ `Confidentiality required (13)` |
+| `ldapwhoami -ZZ` (StartTLS) from db01 and **from web01** | success | ✅ |
+
+![service account](screenshots/stage2/19-ldap-gitea-service-account.png)
+![ACL](screenshots/stage2/20-ldap-acl-anonymous-blocked.png)
+![TLS required](screenshots/stage2/21-ldap-tls-required.png)
+![StartTLS from web01](screenshots/stage2/22-ldap-starttls-from-web01.png)
+
+### 5C — Gitea authentication source
+
+All settings: [`configs/ldap/gitea-auth-source.md`](../configs/ldap/gitea-auth-source.md). Key points: **StartTLS** with certificate verification on, user filter `(&(objectClass=inetOrgPerson)(uid=%[1]s))`, only members of **`cn=staff`** may log in, `(uid=an)` is Gitea admin, user synchronization on (users removed from LDAP get deactivated), "empty search result deactivates all users" **off**.
+
+![auth source groups](screenshots/stage2/23-gitea-ldap-auth-source-groups.png)
+
+---
+
+## Step 6 — End-to-end test
+
+Browser → HTTPS → Nginx → Gitea → StartTLS → OpenLDAP → group check → bind as user.
+
+| Test | Expected | Result |
+|------|----------|--------|
+| `binh` (dev, staff) logs in | success, normal user | ✅ |
+| `an` (it, staff) logs in | success, sees **Site Administration** | ✅ |
+| `binh` with wrong password | rejected, generic message | ✅ `Username or password is incorrect.` |
+| Remove `dung` from `staff` → log in | rejected ("employee leaves") | ⏳ to demo later |
+
+![binh](screenshots/stage2/24-gitea-login-binh-ldap.png)
+![an admin](screenshots/stage2/25-gitea-login-an-admin.png)
+![wrong password](screenshots/stage2/26-gitea-login-wrong-password.png)
 
 ---
 
@@ -167,3 +229,5 @@ chmod 600 /etc/nginx/ssl/git.key
 | 8 | `nc` to web01:3000 returned **refused**, not timeout | Test was run **on web01 itself** → loopback traffic bypasses ufw | Re-ran from bastion → timeout | Always test from the client's point of view |
 | 9 | `acme.sh: command not found` right after "Install success" | Installer adds an alias to `~/.bashrc`, current shell had not re-read it | Call `/root/.acme.sh/acme.sh` directly (or `source ~/.bashrc`) | Don't `apt install acme.sh` on top — two copies cause confusion |
 | 10 | `openssl` not found / `\` broke the command on Windows | cmd has no openssl and no `\` line continuation | Ran it on bastion | Know which shell you're in |
+| 11 | Couldn't find *Site Administration* in Gitea | Menu is under the avatar (top right), not the context switcher on the left | Direct URL `/-/admin/auths` | Admin pages have stable URLs — bookmark them |
+| 12 | Risk: pasting a block containing `read -s` | When pasted, `read` can consume the next pasted line as its input | Worked this time, verified with `ldapwhoami`; type secret prompts line by line | Verify secrets were really set, don't assume |

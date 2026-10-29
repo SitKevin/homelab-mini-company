@@ -79,8 +79,8 @@ nodes = [
     ("db01", 730, 650, 300, 150, "vm", "db01 · 192.168.196.12", [
         "PostgreSQL :5432",
         "web01 only · scram-sha-256 · TLS",
-        "~OpenLDAP :389/636 (Phase 2, step 5)",
-        "~dc=homelab,dc=internal"]),
+        "OpenLDAP :389 · StartTLS required",
+        "dc=homelab,dc=internal · internal CA"]),
 
     ("fw", 1060, 420, 280, 380, "fw", "ufw — default deny incoming", [
         "bastion",
@@ -95,6 +95,7 @@ nodes = [
         "db01",
         "   22/tcp  SSH via bastion",
         "   5432/tcp ← web01 only",
+        "   389/tcp  ← web01 only",
         "",
         "All nodes: fail2ban,",
         "SSH key-only, no root login"]),
@@ -113,8 +114,8 @@ edges = [
     ([(470, 570), (470, 650)], C["ssh"], False, None, None),
     ([(810, 570), (810, 650)], C["sql"], False,
      "SQL :5432 · TLS", (803, 614, "end")),
-    ([(960, 570), (960, 650)], C["planned"], True,
-     "LDAP (planned)", (966, 614, "start")),
+    ([(935, 570), (935, 650)], C["sql"], False,
+     "LDAP · StartTLS", (941, 614, "start")),
     ([(670, 770), (730, 770)], C["planned"], True, None, None),
     ([(990, 420), (990, 185), (230, 185), (230, 154)], C["acme"], False,
      "DNS-01: acme.sh sets TXT via DuckDNS API (outbound through NAT)", (240, 202, "start")),
@@ -126,7 +127,7 @@ edges = [
 legend_items = [
     (C["https"], False, "HTTPS (users)"),
     (C["ssh"], False, "SSH (admin / ProxyJump)"),
-    (C["sql"], False, "Database"),
+    (C["sql"], False, "Database / LDAP"),
     (C["acme"], False, "Certificates / DNS-01"),
     (C["planned"], True, "Planned (later phase)"),
 ]

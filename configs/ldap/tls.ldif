@@ -1,0 +1,16 @@
+# Apply: sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f tls.ldif
+# Key BEFORE cert, otherwise slapd may reject the change with error (80).
+# olcSecurity tls=1 -> any bind without StartTLS fails with "Confidentiality required (13)".
+dn: cn=config
+changetype: modify
+replace: olcTLSCACertificateFile
+olcTLSCACertificateFile: /etc/ldap/tls/ca.crt
+-
+replace: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: /etc/ldap/tls/ldap.key
+-
+replace: olcTLSCertificateFile
+olcTLSCertificateFile: /etc/ldap/tls/ldap.crt
+-
+replace: olcSecurity
+olcSecurity: tls=1

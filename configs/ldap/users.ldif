@@ -1,0 +1,33 @@
+# Sample employees. No passwords in this file - set them with ldappasswd:
+#   ldappasswd -x -H ldap://localhost -D "cn=admin,dc=homelab,dc=internal" -W -S "uid=<user>,ou=people,dc=homelab,dc=internal"
+dn: uid=an,ou=people,dc=homelab,dc=internal
+objectClass: inetOrgPerson
+uid: an
+cn: Nguyen Van An
+sn: Nguyen
+givenName: An
+mail: an@homelab.internal
+
+dn: uid=binh,ou=people,dc=homelab,dc=internal
+objectClass: inetOrgPerson
+uid: binh
+cn: Tran Thi Binh
+sn: Tran
+givenName: Binh
+mail: binh@homelab.internal
+
+dn: uid=chi,ou=people,dc=homelab,dc=internal
+objectClass: inetOrgPerson
+uid: chi
+cn: Le Minh Chi
+sn: Le
+givenName: Chi
+mail: chi@homelab.internal
+
+dn: uid=dung,ou=people,dc=homelab,dc=internal
+objectClass: inetOrgPerson
+uid: dung
+cn: Pham Van Dung
+sn: Pham
+givenName: Dung
+mail: dung@homelab.internal

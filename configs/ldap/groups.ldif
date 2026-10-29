@@ -1,0 +1,22 @@
+# groupOfNames: members are full user DNs (Gitea reads the "member" attribute)
+dn: cn=it,ou=groups,dc=homelab,dc=internal
+objectClass: groupOfNames
+cn: it
+description: IT / System administrators
+member: uid=an,ou=people,dc=homelab,dc=internal
+
+dn: cn=dev,ou=groups,dc=homelab,dc=internal
+objectClass: groupOfNames
+cn: dev
+description: Developers
+member: uid=binh,ou=people,dc=homelab,dc=internal
+member: uid=chi,ou=people,dc=homelab,dc=internal
+
+dn: cn=staff,ou=groups,dc=homelab,dc=internal
+objectClass: groupOfNames
+cn: staff
+description: All employees
+member: uid=an,ou=people,dc=homelab,dc=internal
+member: uid=binh,ou=people,dc=homelab,dc=internal
+member: uid=chi,ou=people,dc=homelab,dc=internal
+member: uid=dung,ou=people,dc=homelab,dc=internal

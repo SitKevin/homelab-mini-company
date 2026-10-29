@@ -1,0 +1,12 @@
+# Apply: sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f acl.ldif
+# Show:  sudo ldapsearch -Q -Y EXTERNAL -H ldapi:/// -b cn=config "(olcDatabase={1}mdb)" olcAccess -LLL
+#
+# Ubuntu default rule {2} was "to * by * read" (anonymous could read the whole directory).
+# Now: passwords usable only for authentication, everything else readable by authenticated users only.
+# cn=admin (rootDN) bypasses ACLs.
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: {0}to attrs=userPassword by self write by anonymous auth by * none
+olcAccess: {1}to attrs=shadowLastChange by self write by * none
+olcAccess: {2}to * by users read by * none

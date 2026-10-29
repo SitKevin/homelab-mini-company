@@ -73,6 +73,7 @@ flowchart LR
 |---------|----------------|------|-------|
 | Gitea   | `https://git.sitkevin.duckdns.org` | web01 | Nginx → `127.0.0.1:3000`, Let's Encrypt cert, auto-renew via acme.sh |
 | PostgreSQL | `192.168.196.12:5432` | db01 | Only reachable from web01 (ufw + `pg_hba.conf`) |
+| OpenLDAP | `ldap://db01.homelab.internal:389` (StartTLS) | db01 | Only from web01; internal CA `configs/ldap/homelab-ca.crt` |
 
 > The DuckDNS name resolves to a **private** IP — nothing is exposed to the internet. The certificate is obtained with the DNS-01 challenge, which doesn't require inbound access.
 
@@ -87,12 +88,12 @@ flowchart LR
 - [x] SSH key authentication (bastion → all nodes, Windows → all nodes via ProxyJump)
 - [x] Hardening: disable password login, UFW, fail2ban
 
-### Phase 2 — Services
+### Phase 2 — Services ✅
 - [x] PostgreSQL on db01 (dedicated non-superuser role, web01-only access, TLS)
 - [x] Gitea on web01 (systemd, unprivileged user, bound to localhost)
 - [x] Nginx reverse proxy with Let's Encrypt SSL (DNS-01 via DuckDNS — works behind NAT)
-- [ ] OpenLDAP for centralized user management
-- [ ] End-to-end test: LDAP user → Gitea over HTTPS
+- [x] OpenLDAP on db01 (`dc=homelab,dc=internal`, read-only bind account, no anonymous read, StartTLS mandatory with an internal CA)
+- [x] Gitea login via LDAP (only group `staff`, admins via filter) — end-to-end tested
 
 📄 Build log, verification and debugging notes: [`docs/phase2-services.md`](docs/phase2-services.md)
 

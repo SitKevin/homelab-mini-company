@@ -1,0 +1,14 @@
+# Read-only bind account used by Gitea to look up users.
+# Kept in ou=services so it is never listed as an employee / can't log in to Gitea.
+# The placeholder is replaced right after with:
+#   ldappasswd -x -H ldap://localhost -D "cn=admin,dc=homelab,dc=internal" -W -S "cn=gitea,ou=services,dc=homelab,dc=internal"
+dn: ou=services,dc=homelab,dc=internal
+objectClass: organizationalUnit
+ou: services
+
+dn: cn=gitea,ou=services,dc=homelab,dc=internal
+objectClass: organizationalRole
+objectClass: simpleSecurityObject
+cn: gitea
+description: Read-only bind account for Gitea
+userPassword: {SSHA}placeholder

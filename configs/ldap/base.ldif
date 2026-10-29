@@ -1,0 +1,9 @@
+# db01: ldapadd -x -H ldap://localhost -D "cn=admin,dc=homelab,dc=internal" -W -f base.ldif
+# Base DN dc=homelab,dc=internal is created by: sudo dpkg-reconfigure slapd (domain homelab.internal)
+dn: ou=people,dc=homelab,dc=internal
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=homelab,dc=internal
+objectClass: organizationalUnit
+ou: groups
