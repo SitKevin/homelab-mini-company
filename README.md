@@ -26,10 +26,6 @@ This project demonstrates core system administration skills:
 
 ![Architecture](docs/diagrams/architecture.png)
 
-### Network diagram
-
-![Network diagram](docs/diagrams/network.png)
-
 ---
 
 ## 🖥️ Virtual Machines
