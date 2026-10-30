@@ -13,6 +13,9 @@ ansible-playbook playbooks/ping.yml -K   # -K = ask sudo password
 |---|---|
 | `ansible.cfg` | Defaults (inventory path, remote user, SSH pipelining, `become_exe = sudo.ws` for Ubuntu 26.04) |
 | `inventory/hosts.ini` | Hosts and groups: `jumphost`, `web`, `db`, `monitoring`, `homelab` (all) |
-| `group_vars/all.yml` | Variables shared by all hosts |
+| `inventory/group_vars/all.yml` | Variables shared by all hosts |
+| `inventory/host_vars/<host>.yml` | Per-host variables (e.g. `ufw_rules`) |
+
+> `group_vars/` and `host_vars/` must sit next to the inventory file (or the playbook) — Ansible doesn't look anywhere else.
 | `playbooks/` | Playbooks |
 | `roles/` | Roles (common, bind9, postgresql, gitea, nginx, openldap) — Phase 3 |
