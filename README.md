@@ -117,12 +117,6 @@ This project demonstrates core system administration skills:
 
 📄 Monitoring architecture, alert rules, backup design, restore results: [`docs/phase4-monitoring-backup.md`](docs/phase4-monitoring-backup.md)
 
-### Phase 5 — Documentation ✅
-- [x] Finalize this README
-- [x] Architecture diagram
-- [x] Runbooks: [alerts](docs/runbooks/alerts.md), [restore](docs/runbooks/restore.md), [user management](docs/runbooks/user-management.md)
-- [x] Postmortems: [2 real incidents](docs/postmortems/README.md)
-
 ---
 
 ## 📁 Repository Structure
