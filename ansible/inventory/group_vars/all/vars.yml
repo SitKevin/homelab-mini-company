@@ -6,3 +6,7 @@ bastion_ip: 192.168.196.10
 web01_ip: 192.168.196.11
 db01_ip: 192.168.196.12
 mon01_ip: 192.168.196.13
+
+# sudo password comes from the encrypted vault.yml (same folder).
+# Convention: real secrets are named vault_* and live only in vault.yml.
+ansible_become_password: "{{ vault_become_password }}"
