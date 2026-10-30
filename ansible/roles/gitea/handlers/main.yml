@@ -1,0 +1,5 @@
+- name: restart gitea
+  ansible.builtin.systemd_service:
+    name: gitea
+    state: restarted
+    daemon_reload: true

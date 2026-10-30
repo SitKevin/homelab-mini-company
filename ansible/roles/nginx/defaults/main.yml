@@ -1,0 +1,6 @@
+# Role "nginx": reverse proxy + Let's Encrypt cert on web01 (Phase 2 steps 3-4, as code).
+nginx_configs_dir: "{{ playbook_dir }}/../../configs/nginx"
+nginx_site: gitea
+nginx_cert_domain: git.sitkevin.duckdns.org
+nginx_ssl_dir: /etc/nginx/ssl
+# Secret (Vault): vault_duckdns_token - only used when the cert must be issued (fresh host)

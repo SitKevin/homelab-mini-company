@@ -1,0 +1,92 @@
+- name: Install git
+  ansible.builtin.apt:
+    name: git
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Group git
+  ansible.builtin.group:
+    name: git
+    system: true
+
+- name: System user git (runs Gitea; shell needed for git over SSH)
+  ansible.builtin.user:
+    name: git
+    group: git
+    system: true
+    shell: /bin/bash
+    home: /home/git
+    comment: Git Version Control
+
+# get_url compares the SHA-256 of the existing file with the official checksum:
+# same version -> nothing downloaded; different version -> replaced + restart.
+- name: Gitea binary (checksum-verified)
+  ansible.builtin.get_url:
+    url: "{{ gitea_binary_url }}"
+    checksum: "sha256:{{ gitea_binary_url }}.sha256"
+    dest: /usr/local/bin/gitea
+    owner: root
+    group: root
+    mode: "0755"
+  notify: restart gitea
+
+- name: Data directories
+  ansible.builtin.file:
+    path: "/var/lib/gitea/{{ item }}"
+    state: directory
+    owner: git
+    group: git
+    mode: "0750"
+  loop: [custom, data, log]
+
+- name: Config directory (read-only for git)
+  ansible.builtin.file:
+    path: /etc/gitea
+    state: directory
+    owner: root
+    group: git
+    mode: "0750"
+
+- name: app.ini - settings
+  community.general.ini_file:
+    path: /etc/gitea/app.ini
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: git
+    group: git
+    mode: "0640"
+  loop: "{{ gitea_settings }}"
+  loop_control:
+    label: "[{{ item.section | default('', true) }}] {{ item.option }} = {{ item.value }}"
+  notify: restart gitea
+
+- name: app.ini - secrets (from Vault)
+  community.general.ini_file:
+    path: /etc/gitea/app.ini
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: git
+    group: git
+    mode: "0640"
+  loop: "{{ gitea_secret_settings }}"
+  no_log: true
+  notify: restart gitea
+
+- name: systemd unit
+  ansible.builtin.copy:
+    src: "{{ gitea_configs_dir }}/gitea.service"
+    dest: /etc/systemd/system/gitea.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart gitea
+
+- name: Gitea is enabled and running
+  ansible.builtin.systemd_service:
+    name: gitea
+    state: started
+    enabled: true
+    daemon_reload: true

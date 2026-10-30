@@ -1,0 +1,43 @@
+# Role "gitea": Gitea on web01 (Phase 2 step 2, as code).
+gitea_version: "28.2.0"
+gitea_binary_url: "https://dl.gitea.com/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-linux-amd64"
+gitea_configs_dir: "{{ playbook_dir }}/../../configs/gitea"
+gitea_domain: git.sitkevin.duckdns.org
+
+# Private instance: anonymous visitors see nothing (Explore, public repos).
+gitea_require_signin_view: true
+
+# app.ini is NOT templated as a whole: only these keys are managed (ini_file),
+# so settings Gitea adds itself are left alone. Values must be STRINGS
+# ("true", "3000") - a YAML boolean would be written as "True".
+gitea_settings:
+  - { section: null,     option: RUN_MODE,      value: prod }
+  - { section: null,     option: APP_NAME,      value: Homelab Git }
+  - { section: null,     option: RUN_USER,      value: git }
+  - { section: null,     option: WORK_PATH,     value: /var/lib/gitea }
+  - { section: security, option: INSTALL_LOCK,  value: "true" }   # no web installer
+  - { section: database, option: DB_TYPE,       value: postgres }
+  - { section: database, option: HOST,          value: "{{ db01_ip }}:5432" }
+  - { section: database, option: NAME,          value: gitea }
+  - { section: database, option: USER,          value: gitea }
+  - { section: database, option: SSL_MODE,      value: require }
+  - { section: server,   option: HTTP_ADDR,     value: 127.0.0.1 }  # only via Nginx
+  - { section: server,   option: HTTP_PORT,     value: "3000" }
+  - { section: server,   option: DOMAIN,        value: "{{ gitea_domain }}" }
+  - { section: server,   option: SSH_DOMAIN,    value: "{{ gitea_domain }}" }
+  - { section: server,   option: ROOT_URL,      value: "https://{{ gitea_domain }}" }
+  - { section: server,   option: APP_DATA_PATH, value: /var/lib/gitea/data }
+  - { section: server,   option: LFS_START_SERVER, value: "true" }
+  - { section: server,   option: DISABLE_SSH,   value: "false" }
+  - { section: server,   option: SSH_PORT,      value: "22" }
+  - { section: mailer,   option: ENABLED,       value: "false" }
+  - { section: service,  option: DISABLE_REGISTRATION, value: "true" }
+  - { section: service,  option: REQUIRE_SIGNIN_VIEW,  value: "{{ gitea_require_signin_view | string | lower }}" }
+
+# Secrets (Vault). Keeping the EXISTING values matters: new ones would
+# invalidate sessions/tokens and anything Gitea encrypted with them.
+gitea_secret_settings:
+  - { section: database, option: PASSWD,         value: "{{ vault_gitea_db_password }}" }
+  - { section: security, option: INTERNAL_TOKEN, value: "{{ vault_gitea_internal_token }}" }
+  - { section: server,   option: LFS_JWT_SECRET, value: "{{ vault_gitea_lfs_jwt_secret }}" }
+  - { section: oauth2,   option: JWT_SECRET,     value: "{{ vault_gitea_jwt_secret }}" }

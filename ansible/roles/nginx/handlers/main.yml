@@ -1,0 +1,11 @@
+# Never reload a broken config: nginx -t first.
+- name: Validate nginx config
+  ansible.builtin.command: nginx -t
+  changed_when: false
+  listen: nginx config changed
+
+- name: Reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  listen: nginx config changed

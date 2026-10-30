@@ -1,0 +1,79 @@
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Hide the Nginx version (server_tokens off)
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^\s*#?\s*server_tokens\s'
+    line: "\tserver_tokens off;"
+    insertafter: '^http \{'
+  notify: nginx config changed
+
+- name: Site config
+  ansible.builtin.copy:
+    src: "{{ nginx_configs_dir }}/{{ nginx_site }}.conf"
+    dest: "/etc/nginx/sites-available/{{ nginx_site }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: nginx config changed
+
+- name: Site enabled
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ nginx_site }}"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_site }}"
+    state: link
+  notify: nginx config changed
+
+- name: Default site disabled
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: nginx config changed
+
+# ------------------------------------------------------------------ certificate
+# acme.sh renews by itself (root cron). Ansible only bootstraps a fresh host:
+# if the installed cert already exists, nothing below runs.
+- name: Is the certificate already installed?
+  ansible.builtin.stat:
+    path: "{{ nginx_ssl_dir }}/git.fullchain.pem"
+  register: nginx_cert
+
+- name: Issue + install the Let's Encrypt cert (fresh host only, DNS-01 via DuckDNS)
+  when: not nginx_cert.stat.exists
+  block:
+    - name: Install acme.sh
+      ansible.builtin.shell: curl -fsSL https://get.acme.sh | sh
+      args:
+        creates: /root/.acme.sh/acme.sh
+
+    - name: SSL directory
+      ansible.builtin.file:
+        path: "{{ nginx_ssl_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Issue and install the certificate
+      ansible.builtin.shell: |
+        /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+        /root/.acme.sh/acme.sh --issue --dns dns_duckdns -d {{ nginx_cert_domain }} --dnssleep 60
+        /root/.acme.sh/acme.sh --install-cert -d {{ nginx_cert_domain }} \
+          --key-file       {{ nginx_ssl_dir }}/git.key \
+          --fullchain-file {{ nginx_ssl_dir }}/git.fullchain.pem \
+          --reloadcmd      "systemctl reload nginx"
+        chmod 600 {{ nginx_ssl_dir }}/git.key
+      environment:
+        DuckDNS_Token: "{{ vault_duckdns_token }}"
+      no_log: true
+
+- name: Nginx is enabled and running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

@@ -1,0 +1,9 @@
+# Gitea + Nginx on web01.
+# Dry run: ansible-playbook playbooks/web.yml --check --diff
+# Apply:   ansible-playbook playbooks/web.yml
+- name: Web server
+  hosts: web
+  become: true
+  roles:
+    - gitea
+    - nginx
