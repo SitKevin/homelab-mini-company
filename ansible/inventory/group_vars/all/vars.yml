@@ -10,3 +10,7 @@ mon01_ip: 192.168.196.13
 # sudo password comes from the encrypted vault.yml (same folder).
 # Convention: real secrets are named vault_* and live only in vault.yml.
 ansible_become_password: "{{ vault_become_password }}"
+
+# Backups (restic over SFTP): which host stores them, which hosts are backed up
+backup_server: mon01
+backup_clients: "{{ groups['web'] + groups['db'] }}"

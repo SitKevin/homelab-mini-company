@@ -1,0 +1,2 @@
+# Role "backup_server": SFTP-only accounts that hold the restic repositories (mon01).
+backup_root: /srv/restic

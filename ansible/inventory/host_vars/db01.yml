@@ -2,3 +2,13 @@ ufw_rules:
   - { port: 22, proto: tcp, from: 192.168.196.10, comment: "SSH from bastion only" }
   - { port: 5432, proto: tcp, from: 192.168.196.11, comment: "postgres from web01" }
   - { port: 389, proto: tcp, from: 192.168.196.11, comment: "ldap from web01" }
+
+# Backup: consistent dumps, never the live database files.
+backup_paths:
+  - /var/backups/homelab
+backup_pre_commands:
+  - install -d -m 0700 /var/backups/homelab
+  - runuser -u postgres -- pg_dumpall --globals-only > /var/backups/homelab/postgres-globals.sql
+  - runuser -u postgres -- pg_dump --format=custom gitea > /var/backups/homelab/gitea.pgdump
+  - slapcat -n 0 > /var/backups/homelab/ldap-config.ldif
+  - slapcat -n 1 > /var/backups/homelab/ldap-data.ldif

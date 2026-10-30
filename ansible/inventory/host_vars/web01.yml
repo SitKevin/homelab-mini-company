@@ -1,3 +1,8 @@
 ufw_rules:
   - { port: 22, proto: tcp, from: 192.168.196.10, comment: "SSH from bastion only" }
   - { app: "Nginx Full", comment: "HTTP/HTTPS" }
+
+# Backup: Gitea data (repositories, attachments, avatars). Config lives in Git/Ansible.
+backup_paths:
+  - /var/lib/gitea
+backup_pre_commands: []

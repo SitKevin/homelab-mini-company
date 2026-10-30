@@ -1,0 +1,16 @@
+# Role "backup_client": restic backups to {{ backup_server }} over SFTP.
+backup_server_ip: "{{ hostvars[backup_server].ansible_host }}"
+backup_repository: "sftp:restic-backup:/srv/restic/{{ inventory_hostname }}/repo"
+backup_ssh_key: /root/.ssh/restic_backup
+backup_scripts_dir: "{{ playbook_dir }}/../../scripts"
+
+# Retention (restic forget): 7 daily, 4 weekly, 6 monthly snapshots
+backup_keep_daily: 7
+backup_keep_weekly: 4
+backup_keep_monthly: 6
+
+# When: every night; db01 and web01 don't run at the same minute
+backup_on_calendar: "*-*-* 02:{{ '00' if inventory_hostname in groups['db'] else '30' }}:00"
+
+# Per host (host_vars): backup_paths, backup_pre_commands
+# Secret (Vault): vault_restic_password

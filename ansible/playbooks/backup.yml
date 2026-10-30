@@ -1,0 +1,14 @@
+# Backups: restic over SFTP to mon01, nightly systemd timer, monitored by Prometheus.
+# Dry run: ansible-playbook playbooks/backup.yml --check --diff
+# Apply:   ansible-playbook playbooks/backup.yml
+- name: Backup server (repositories)
+  hosts: monitoring          # = backup_server (play hosts are chosen before group_vars are read)
+  become: true
+  roles:
+    - backup_server
+
+- name: Backup clients
+  hosts: web:db
+  become: true
+  roles:
+    - backup_client

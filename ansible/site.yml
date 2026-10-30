@@ -10,3 +10,4 @@
 - import_playbook: playbooks/web.yml      # web01: Gitea + Nginx
 - import_playbook: playbooks/maintenance.yml   # all hosts: health checks + cron
 - import_playbook: playbooks/monitoring.yml    # all hosts: node_exporter; mon01: Prometheus, Alertmanager, Grafana
+- import_playbook: playbooks/backup.yml        # web01, db01 -> restic on mon01

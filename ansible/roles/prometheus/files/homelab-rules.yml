@@ -67,3 +67,21 @@ groups:
         annotations:
           summary: "Certificate of {{ $labels.instance }} expires in {{ $value | printf \"%.0f\" }} days"
           description: "acme.sh should have renewed it ~30 days before expiry. Check the root crontab on web01 and /root/.acme.sh logs."
+
+      - alert: BackupFailed
+        expr: homelab_backup_last_status != 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Last backup of {{ $labels.instance }} FAILED (exit {{ $value }})"
+          description: "journalctl -u homelab-backup on {{ $labels.instance }}"
+
+      - alert: BackupTooOld
+        expr: (time() - homelab_backup_last_success_timestamp_seconds) / 3600 > 26
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No successful backup of {{ $labels.instance }} for {{ $value | printf \"%.0f\" }} hours"
+          description: "The nightly backup didn't run or keeps failing. systemctl list-timers homelab-backup.timer"

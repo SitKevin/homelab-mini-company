@@ -1,0 +1,36 @@
+- name: Backup root
+  ansible.builtin.file:
+    path: "{{ backup_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# One Unix user per client: a compromised web01 can't read or delete db01's backups.
+- name: One SFTP-only user per client
+  ansible.builtin.user:
+    name: "restic-{{ item }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ backup_root }}/{{ item }}"
+    create_home: true
+    comment: "restic repository of {{ item }}"
+  loop: "{{ backup_clients }}"
+
+- name: Client directory readable by its owner only
+  ansible.builtin.file:
+    path: "{{ backup_root }}/{{ item }}"
+    state: directory
+    owner: "restic-{{ item }}"
+    group: "restic-{{ item }}"
+    mode: "0700"
+  loop: "{{ backup_clients }}"
+
+- name: ufw - SSH (SFTP) from the backup clients
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    from_ip: "{{ hostvars[item].ansible_host }}"
+    comment: "restic sftp from {{ item }}"
+  loop: "{{ backup_clients }}"

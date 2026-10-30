@@ -1,0 +1,149 @@
+- name: Install restic
+  ansible.builtin.apt:
+    name: restic
+    state: present
+    install_recommends: false
+    update_cache: true
+    cache_valid_time: 3600
+
+# ------------------------------------------------------------------ secrets + repository location
+- name: /etc/restic (root only)
+  ansible.builtin.file:
+    path: /etc/restic
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Repository password (from Vault)
+  ansible.builtin.copy:
+    content: "{{ vault_restic_password }}"
+    dest: /etc/restic/password
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Repository location
+  ansible.builtin.copy:
+    dest: /etc/restic/env
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      # Managed by Ansible (role backup_client)
+      RESTIC_REPOSITORY={{ backup_repository }}
+      RESTIC_PASSWORD_FILE=/etc/restic/password
+
+- name: What to back up (+ dump commands)
+  ansible.builtin.template:
+    src: backup.conf.j2
+    dest: /etc/restic/backup.conf
+    owner: root
+    group: root
+    mode: "0600"
+    validate: bash -n %s
+
+# ------------------------------------------------------------------ SSH to the backup server
+- name: /root/.ssh
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Dedicated SSH key for backups
+  community.crypto.openssh_keypair:
+    path: "{{ backup_ssh_key }}"
+    type: ed25519
+    comment: "restic backup {{ inventory_hostname }}"
+  register: backup_key
+
+# The key can ONLY do SFTP: no shell, no port forwarding, no pty.
+- name: Authorise the key on the backup server (SFTP only)
+  ansible.posix.authorized_key:
+    user: "restic-{{ inventory_hostname }}"
+    key: "{{ backup_key.public_key }}"
+    key_options: 'restrict,command="internal-sftp"'
+  delegate_to: "{{ backup_server }}"
+  ignore_errors: "{{ ansible_check_mode }}"   # key doesn't exist yet during --check
+
+# Verified host key (read from the server itself) instead of trusting on first use
+- name: Read the backup server's host key
+  ansible.builtin.slurp:
+    src: /etc/ssh/ssh_host_ed25519_key.pub
+  delegate_to: "{{ backup_server }}"
+  register: backup_server_hostkey
+
+- name: Trust the backup server's host key
+  ansible.builtin.known_hosts:
+    path: /root/.ssh/known_hosts
+    name: "{{ backup_server_ip }}"
+    key: "{{ backup_server_ip }} {{ (backup_server_hostkey.content | b64decode).split()[:2] | join(' ') }}"
+
+- name: SSH alias "restic-backup"
+  ansible.builtin.blockinfile:
+    path: /root/.ssh/config
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+    marker: "# {mark} restic backup (managed by Ansible)"
+    block: |
+      Host restic-backup
+          HostName {{ backup_server_ip }}
+          User restic-{{ inventory_hostname }}
+          IdentityFile {{ backup_ssh_key }}
+          IdentitiesOnly yes
+          BatchMode yes
+
+# ------------------------------------------------------------------ repository
+- name: Is the repository initialised?
+  ansible.builtin.command: restic cat config
+  environment:
+    RESTIC_REPOSITORY: "{{ backup_repository }}"
+    RESTIC_PASSWORD_FILE: /etc/restic/password
+  register: backup_repo
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Initialise the repository (first run only)
+  ansible.builtin.command: restic init
+  environment:
+    RESTIC_REPOSITORY: "{{ backup_repository }}"
+    RESTIC_PASSWORD_FILE: /etc/restic/password
+  when: backup_repo.rc != 0
+
+# ------------------------------------------------------------------ script + schedule
+- name: restic-backup.sh
+  ansible.builtin.copy:
+    src: "{{ backup_scripts_dir }}/restic-backup.sh"
+    dest: /usr/local/bin/restic-backup.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: systemd service + timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - homelab-backup.service
+    - homelab-backup.timer
+  notify: systemd reload
+
+- name: Flush handlers (daemon-reload before enabling the timer)
+  ansible.builtin.meta: flush_handlers
+
+- name: Timer enabled and started
+  ansible.builtin.systemd_service:
+    name: homelab-backup.timer
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"

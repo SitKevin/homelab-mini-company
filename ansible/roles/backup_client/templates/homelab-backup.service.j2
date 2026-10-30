@@ -1,0 +1,11 @@
+# Managed by Ansible (role backup_client)
+[Unit]
+Description=Homelab backup (restic -> {{ backup_server }})
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/restic-backup.sh
+Nice=10
+IOSchedulingClass=idle

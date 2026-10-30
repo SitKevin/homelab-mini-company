@@ -6,6 +6,14 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Textfile collector directory
+  ansible.builtin.file:
+    path: "{{ node_exporter_textfile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: node_exporter options (extra collectors)
   ansible.builtin.lineinfile:
     path: /etc/default/prometheus-node-exporter

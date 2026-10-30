@@ -1,0 +1,11 @@
+# Managed by Ansible (role backup_client)
+[Unit]
+Description=Nightly homelab backup
+
+[Timer]
+OnCalendar={{ backup_on_calendar }}
+RandomizedDelaySec=5min
+Persistent=true      # host was off at backup time -> run as soon as it boots
+
+[Install]
+WantedBy=timers.target
