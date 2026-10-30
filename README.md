@@ -73,10 +73,12 @@ This project demonstrates core system administration skills:
 
 📄 Build log, verification and debugging notes: [`docs/phase2-services.md`](docs/phase2-services.md)
 
-### Phase 3 — Automation
-- [ ] Ansible inventory and roles
-- [ ] One-command playbook to rebuild the whole environment
-- [ ] Bash maintenance scripts scheduled with cron
+### Phase 3 — Automation ✅
+- [x] Ansible inventory and 7 roles (common, bind9, postgresql, openldap, gitea, nginx, maintenance), secrets in Ansible Vault
+- [x] One command — `ansible-playbook site.yml` — converges all 4 servers, idempotent (`changed=0` on re-run)
+- [x] Bash health checks (`node-check.sh`, `lab-check.sh`) scheduled with cron, logged to file + syslog
+
+📄 Roles, safe change workflow, secrets, drift found, health checks: [`docs/phase3-automation.md`](docs/phase3-automation.md)
 
 ### Phase 4 — Monitoring & Backup
 - [ ] Prometheus + node_exporter on all nodes
@@ -99,7 +101,7 @@ This project demonstrates core system administration skills:
 
 ---
 
-## 📁 Repository Structure (planned)
+## 📁 Repository Structure
 
 ```
 .
@@ -107,7 +109,8 @@ This project demonstrates core system administration skills:
 ├── scripts/          # Bash scripts (backup, health checks, ...)
 ├── configs/          # Reference config files
 ├── docs/
-│   ├── phase2-services.md  # Phase 2 build log + debugging notes
+│   ├── phase2-services.md   # Phase 2 build log + debugging notes
+│   ├── phase3-automation.md # Phase 3 Ansible + scripts
 │   ├── screenshots/  # Evidence per phase
 │   ├── diagrams/     # draw.io network diagrams
 │   ├── runbooks/     # Step-by-step operational procedures
@@ -119,11 +122,15 @@ This project demonstrates core system administration skills:
 
 ## 🚀 Quick Start
 
-_Coming in Phase 3 — the goal is:_
+From the bastion (Ansible control node):
 
 ```bash
-ansible-playbook -i inventory site.yml
+cd ~/homelab-mini-company/ansible
+ansible-playbook site.yml --check --diff   # dry run: what would change on every server
+ansible-playbook site.yml                  # converge the whole homelab
 ```
+
+Secrets come from Ansible Vault (`~/.ansible/vault_pass` on the bastion). Details: [`ansible/README.md`](ansible/README.md).
 
 ---
 

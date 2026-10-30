@@ -44,6 +44,12 @@ sudo deluser --remove-home git && sudo delgroup git
 # verify: `id git` and `ls /usr/local/bin/gitea` both fail
 ```
 
+> **Update 2026-10-30:** the cleanup was incomplete. systemd still remembered `gitea.service` in the **failed** state (unit file gone, state kept in memory until reboot or reset). It was found two days later by the new health check (`node-check.sh`: `db01 WARN failed systemd units: gitea.service`) and cleared with:
+> ```bash
+> sudo systemctl reset-failed gitea.service
+> ```
+> Lesson: `disable --now` + deleting the unit file is not a full cleanup — check `systemctl --failed` afterwards.
+
 ## What went well
 
 - The prompt shows the hostname — the error was caught before the service started.
@@ -52,5 +58,6 @@ sudo deluser --remove-home git && sudo delgroup git
 ## Action items
 
 - [x] Give each host's terminal tab a distinct name/colour (Windows Terminal).
-- [ ] Phase 3: move all setup into Ansible, where the target host is explicit (`hosts: web01`) — removes manual copy-paste on the wrong machine.
+- [x] Phase 3: all setup moved into Ansible, where the target host is explicit (`hosts: web`) — no more manual copy-paste on the wrong machine.
+- [x] Health check that reports failed units on every host (`node-check.sh`, Phase 3).
 - [ ] Optional: coloured prompt per role (e.g. red on db01) via `PS1` in `/etc/bash.bashrc`.
