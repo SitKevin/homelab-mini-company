@@ -1,0 +1,8 @@
+# Internal DNS (BIND9) on the bastion.
+# Dry run: ansible-playbook playbooks/dns.yml --check --diff
+# Apply:   ansible-playbook playbooks/dns.yml
+- name: Internal DNS
+  hosts: jumphost
+  become: true
+  roles:
+    - bind9

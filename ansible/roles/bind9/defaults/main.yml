@@ -1,0 +1,14 @@
+# Source files: the repo's configs/bind/ (same files documented in Phase 1).
+bind9_configs_dir: "{{ playbook_dir }}/../../configs/bind"
+
+bind9_packages:
+  - bind9
+  - bind9-utils
+  - bind9-dnsutils
+
+# Zones served by this DNS server. "file" is relative to configs/bind/zones/.
+# Remember: bump the SOA serial (YYYYMMDDNN) every time a zone file changes,
+# otherwise resolvers and secondaries may keep the old data.
+bind9_zones:
+  - { name: homelab.internal,         file: db.homelab.internal }
+  - { name: 196.168.192.in-addr.arpa, file: db.192.168.196 }

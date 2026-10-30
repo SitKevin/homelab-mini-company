@@ -1,0 +1,12 @@
+# Check the WHOLE config incl. zones before reloading; a failure here stops
+# the play and the running named keeps serving the old, working config.
+- name: Check full BIND config
+  ansible.builtin.command: named-checkconf -z
+  changed_when: false
+  listen: bind config changed
+
+- name: Reload BIND
+  ansible.builtin.service:
+    name: named
+    state: reloaded
+  listen: bind config changed

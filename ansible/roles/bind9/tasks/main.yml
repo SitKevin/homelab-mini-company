@@ -1,0 +1,55 @@
+# Role "bind9": internal DNS on the bastion (homelab.internal + reverse zone).
+
+- name: Install BIND9
+  ansible.builtin.apt:
+    name: "{{ bind9_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Global options (ACL, forwarders, DNSSEC)
+  ansible.builtin.copy:
+    src: "{{ bind9_configs_dir }}/named.conf.options"
+    dest: /etc/bind/named.conf.options
+    owner: root
+    group: bind
+    mode: "0644"
+    validate: named-checkconf %s     # refuse to install a broken file
+  notify: bind config changed
+
+- name: Zone declarations
+  ansible.builtin.copy:
+    src: "{{ bind9_configs_dir }}/named.conf.local"
+    dest: /etc/bind/named.conf.local
+    owner: root
+    group: bind
+    mode: "0644"
+    validate: named-checkconf %s
+  notify: bind config changed
+
+- name: Zones directory
+  ansible.builtin.file:
+    path: /etc/bind/zones
+    state: directory
+    owner: root
+    group: bind
+    mode: "0755"
+
+- name: Zone files
+  ansible.builtin.copy:
+    src: "{{ bind9_configs_dir }}/zones/{{ item.file }}"
+    dest: "/etc/bind/zones/{{ item.file }}"
+    owner: root
+    group: bind
+    mode: "0644"
+    validate: "named-checkzone {{ item.name }} %s"
+  loop: "{{ bind9_zones }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: bind config changed
+
+- name: BIND is enabled and running
+  ansible.builtin.service:
+    name: named
+    state: started
+    enabled: true
