@@ -1,0 +1,4 @@
+ufw_rules:
+  - { port: 22, proto: tcp, from: 192.168.196.10, comment: "SSH from bastion only" }
+  - { port: 5432, proto: tcp, from: 192.168.196.11, comment: "postgres from web01" }
+  - { port: 389, proto: tcp, from: 192.168.196.11, comment: "ldap from web01" }

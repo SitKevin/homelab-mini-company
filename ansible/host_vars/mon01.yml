@@ -1,0 +1,2 @@
+ufw_rules:
+  - { port: 22, proto: tcp, from: 192.168.196.10, comment: "SSH from bastion only" }

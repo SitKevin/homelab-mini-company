@@ -1,0 +1,9 @@
+# Baseline hardening for every server.
+# Dry run first:  ansible-playbook playbooks/common.yml -K --check --diff
+# Canary:         ansible-playbook playbooks/common.yml -K --limit mon01
+# All:            ansible-playbook playbooks/common.yml -K
+- name: Baseline (role common)
+  hosts: homelab
+  become: true
+  roles:
+    - common

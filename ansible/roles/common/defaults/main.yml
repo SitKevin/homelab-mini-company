@@ -1,0 +1,15 @@
+# Default values - override per host in host_vars/<host>.yml
+common_packages:
+  - ufw
+  - fail2ban
+  - ca-certificates
+
+# Source files live in the repo's configs/ directory (single source of truth,
+# the same files documented in Phase 1/2).
+common_configs_dir: "{{ playbook_dir }}/../../configs"
+
+# Firewall rules for this host. Each item is either
+#   { port: 22, proto: tcp, from: 192.168.196.10, comment: "..." }
+# or an application profile
+#   { app: "Nginx Full", comment: "..." }
+ufw_rules: []
