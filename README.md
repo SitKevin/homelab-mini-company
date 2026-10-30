@@ -80,12 +80,14 @@ This project demonstrates core system administration skills:
 
 📄 Roles, safe change workflow, secrets, drift found, health checks: [`docs/phase3-automation.md`](docs/phase3-automation.md)
 
-### Phase 4 — Monitoring & Backup
-- [ ] Prometheus + node_exporter on all nodes
-- [ ] Grafana dashboards
-- [ ] Alerting to Telegram / Discord
-- [ ] Backups with restic / borg
-- [ ] **Tested restore** (documented end-to-end)
+### Phase 4 — Monitoring & Backup ✅
+- [x] Prometheus + node_exporter on all nodes, PostgreSQL exporter, blackbox HTTPS/certificate probe
+- [x] Grafana dashboards (provisioned as code), reached through an SSH tunnel
+- [x] 9 alert rules → Alertmanager → Discord (tested: FIRING and RESOLVED)
+- [x] Nightly encrypted backups with restic (Gitea data, PostgreSQL dump, LDAP export) to mon01 over SFTP, monitored by Prometheus
+- [x] Restore verified: PostgreSQL restored into a scratch database and LDAP export compared with the live directory — identical ([runbook](docs/runbooks/restore.md))
+
+📄 Monitoring architecture, alert rules, backup design, restore results: [`docs/phase4-monitoring-backup.md`](docs/phase4-monitoring-backup.md)
 
 ### Phase 5 — Documentation
 - [ ] Finalize this README
@@ -111,6 +113,7 @@ This project demonstrates core system administration skills:
 ├── docs/
 │   ├── phase2-services.md   # Phase 2 build log + debugging notes
 │   ├── phase3-automation.md # Phase 3 Ansible + scripts
+│   ├── phase4-monitoring-backup.md # Phase 4 monitoring + backup
 │   ├── screenshots/  # Evidence per phase
 │   ├── diagrams/     # Architecture diagram
 │   ├── runbooks/     # Step-by-step operational procedures
