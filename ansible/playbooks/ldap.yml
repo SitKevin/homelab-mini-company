@@ -1,0 +1,8 @@
+# OpenLDAP on db01.
+# Dry run: ansible-playbook playbooks/ldap.yml --check --diff
+# Apply:   ansible-playbook playbooks/ldap.yml
+- name: Directory server
+  hosts: db
+  become: true
+  roles:
+    - openldap

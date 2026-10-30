@@ -1,0 +1,32 @@
+# Role "openldap": directory on db01 (Phase 2 step 5, as code).
+
+ldap_domain: homelab.internal
+ldap_organization: Homelab
+ldap_base_dn: dc=homelab,dc=internal
+ldap_admin_dn: "cn=admin,{{ ldap_base_dn }}"
+ldap_configs_dir: "{{ playbook_dir }}/../../configs/ldap"
+
+# Secrets (Vault):
+#   vault_ldap_admin_password          - cn=admin
+#   vault_ldap_gitea_bind_password     - cn=gitea,ou=services (Gitea auth source uses it!)
+#   vault_ldap_initial_user_password   - only set when a user is CREATED
+
+ldap_ous: [people, groups, services]
+
+ldap_users:
+  - { uid: an,   cn: Nguyen Van An, sn: Nguyen, givenName: An }
+  - { uid: binh, cn: Tran Thi Binh, sn: Tran,   givenName: Binh }
+  - { uid: chi,  cn: Le Minh Chi,   sn: Le,     givenName: Chi }
+  - { uid: dung, cn: Pham Van Dung, sn: Pham,   givenName: Dung }
+
+# Group membership is enforced exactly: remove a uid here = remove access everywhere.
+ldap_groups:
+  - { cn: it,    description: IT / System administrators, members: [an] }
+  - { cn: dev,   description: Developers,                 members: [binh, chi] }
+  - { cn: staff, description: All employees,              members: [an, binh, chi, dung] }
+
+# cn=config: ACL on the main database (same as configs/ldap/acl.ldif)
+ldap_acl:
+  - to attrs=userPassword by self write by anonymous auth by * none
+  - to attrs=shadowLastChange by self write by * none
+  - to * by users read by * none

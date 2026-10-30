@@ -1,0 +1,197 @@
+# ------------------------------------------------------------------ install
+- name: Install python3-ldap (needed by community.general.ldap_* modules, even in --check)
+  ansible.builtin.apt:
+    name: python3-ldap
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  check_mode: false
+
+- name: Gather installed packages
+  ansible.builtin.package_facts:
+
+# Preseed only on a FRESH machine: debconf can't compare passwords, so doing
+# this on every run would report "changed" forever.
+- name: Preseed slapd (domain, organization, admin password) - fresh install only
+  ansible.builtin.debconf:
+    name: slapd
+    question: "{{ item.q }}"
+    value: "{{ item.v }}"
+    vtype: "{{ item.t }}"
+  loop:
+    - { q: slapd/domain,        v: "{{ ldap_domain }}",               t: string }
+    - { q: shared/organization, v: "{{ ldap_organization }}",         t: string }
+    - { q: slapd/password1,     v: "{{ vault_ldap_admin_password }}", t: password }
+    - { q: slapd/password2,     v: "{{ vault_ldap_admin_password }}", t: password }
+  loop_control:
+    label: "{{ item.q }}"
+  no_log: true
+  when: "'slapd' not in ansible_facts.packages"
+
+- name: Install slapd + ldap-utils
+  ansible.builtin.apt:
+    name: [slapd, ldap-utils]
+    state: present
+
+- name: slapd is enabled and running
+  ansible.builtin.service:
+    name: slapd
+    state: started
+    enabled: true
+
+# ------------------------------------------------------------------ TLS files
+# The CA private key is NOT managed here: it stays only on db01 (offline-CA style).
+- name: TLS directory
+  ansible.builtin.file:
+    path: /etc/ldap/tls
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: CA certificate + server certificate (public)
+  ansible.builtin.copy:
+    src: "{{ ldap_configs_dir }}/{{ item.src }}"
+    dest: "/etc/ldap/tls/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: homelab-ca.crt, dest: ca.crt }
+    - { src: ldap.crt,       dest: ldap.crt }
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Server private key (Vault-encrypted in the repo, decrypted by copy)
+  ansible.builtin.copy:
+    src: "{{ ldap_configs_dir }}/ldap.key.vault"
+    dest: /etc/ldap/tls/ldap.key
+    owner: root
+    group: openldap
+    mode: "0640"
+
+# ------------------------------------------------------------------ cn=config
+# Local socket + SASL EXTERNAL = authenticated as the Linux root user, no password.
+- name: TLS settings (key before cert, as in tls.ldif)
+  community.general.ldap_attrs:
+    server_uri: ldapi:///
+    sasl_class: external
+    dn: cn=config
+    attributes:
+      olcTLSCACertificateFile: /etc/ldap/tls/ca.crt
+      olcTLSCertificateKeyFile: /etc/ldap/tls/ldap.key
+      olcTLSCertificateFile: /etc/ldap/tls/ldap.crt
+    state: exact
+
+- name: Require TLS for every bind (olcSecurity tls=1)
+  community.general.ldap_attrs:
+    server_uri: ldapi:///
+    sasl_class: external
+    dn: cn=config
+    attributes:
+      olcSecurity: tls=1
+    state: exact
+
+- name: ACL - no anonymous read, password hashes never readable
+  community.general.ldap_attrs:
+    server_uri: ldapi:///
+    sasl_class: external
+    dn: "olcDatabase={1}mdb,cn=config"
+    attributes:
+      olcAccess: "{{ ldap_acl }}"
+    ordered: true          # olcAccess values are numbered {0} {1} {2}
+    state: exact
+
+# ------------------------------------------------------------------ directory data
+# Bind as the rootDN over the local socket (ACLs don't apply to the rootDN).
+- name: Organizational units
+  community.general.ldap_entry:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "ou={{ item }},{{ ldap_base_dn }}"
+    objectClass: organizationalUnit
+    attributes:
+      ou: "{{ item }}"
+  loop: "{{ ldap_ous }}"
+
+- name: Employees (inetOrgPerson)
+  community.general.ldap_entry:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "uid={{ item.uid }},ou=people,{{ ldap_base_dn }}"
+    objectClass: inetOrgPerson
+    attributes:
+      uid: "{{ item.uid }}"
+      cn: "{{ item.cn }}"
+      sn: "{{ item.sn }}"
+      givenName: "{{ item.givenName }}"
+      mail: "{{ item.uid }}@{{ ldap_domain }}"
+  loop: "{{ ldap_users }}"
+  loop_control:
+    label: "{{ item.uid }}"
+  register: ldap_new_users
+
+# Password only for users created in THIS run - existing users keep theirs.
+- name: Initial password for newly created users
+  community.general.ldap_passwd:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "uid={{ item.item.uid }},ou=people,{{ ldap_base_dn }}"
+    passwd: "{{ vault_ldap_initial_user_password }}"
+  loop: "{{ ldap_new_users.results | selectattr('changed') | list }}"
+  loop_control:
+    label: "{{ item.item.uid }}"
+  no_log: true
+
+- name: Service account for Gitea
+  community.general.ldap_entry:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "cn=gitea,ou=services,{{ ldap_base_dn }}"
+    objectClass: [organizationalRole, simpleSecurityObject]
+    attributes:
+      cn: gitea
+      description: Read-only bind account for Gitea
+      userPassword: "{SSHA}placeholder"   # replaced by the next task
+  no_log: true
+
+- name: Gitea bind password (must match the Gitea authentication source!)
+  community.general.ldap_passwd:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "cn=gitea,ou=services,{{ ldap_base_dn }}"
+    passwd: "{{ vault_ldap_gitea_bind_password }}"
+  no_log: true
+
+- name: Groups (groupOfNames) exist
+  community.general.ldap_entry:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "cn={{ item.cn }},ou=groups,{{ ldap_base_dn }}"
+    objectClass: groupOfNames
+    attributes:
+      cn: "{{ item.cn }}"
+      description: "{{ item.description }}"
+      member: "{{ item.members | map('regex_replace', '^', 'uid=') | map('regex_replace', '$', ',ou=people,' ~ ldap_base_dn) | list }}"
+  loop: "{{ ldap_groups }}"
+  loop_control:
+    label: "{{ item.cn }}"
+
+- name: Group membership is exactly the list above
+  community.general.ldap_attrs:
+    server_uri: ldapi:///
+    bind_dn: "{{ ldap_admin_dn }}"
+    bind_pw: "{{ vault_ldap_admin_password }}"
+    dn: "cn={{ item.cn }},ou=groups,{{ ldap_base_dn }}"
+    attributes:
+      member: "{{ item.members | map('regex_replace', '^', 'uid=') | map('regex_replace', '$', ',ou=people,' ~ ldap_base_dn) | list }}"
+    state: exact
+  loop: "{{ ldap_groups }}"
+  loop_control:
+    label: "{{ item.cn }}: {{ item.members | join(', ') }}"
