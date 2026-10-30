@@ -1,0 +1,79 @@
+- name: Log directory
+  ansible.builtin.file:
+    path: "{{ maintenance_log_dir }}"
+    state: directory
+    owner: root
+    group: adm          # members of "adm" can read logs without sudo (Ubuntu convention)
+    mode: "0750"
+
+- name: Rotate the logs weekly, keep 4 weeks
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/homelab
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (role maintenance)
+      {{ maintenance_log_dir }}/*.log {
+          weekly
+          rotate 4
+          compress
+          delaycompress
+          missingok
+          notifempty
+      }
+
+# ------------------------------------------------------------------ every host
+- name: node-check.sh
+  ansible.builtin.copy:
+    src: "{{ maintenance_scripts_dir }}/node-check.sh"
+    dest: /usr/local/bin/node-check.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Cron - node-check every 15 minutes
+  ansible.builtin.cron:
+    name: homelab node-check
+    cron_file: homelab-node-check          # -> /etc/cron.d/homelab-node-check
+    user: root
+    minute: "{{ maintenance_cron_minute }}"
+    job: >-
+      DISK_WARN_PCT={{ maintenance_disk_warn_pct }} MEM_WARN_MB={{ maintenance_mem_warn_mb }}
+      /usr/local/bin/node-check.sh >/dev/null 2>&1
+
+# ------------------------------------------------------------------ bastion only
+- name: lab-check (bastion)
+  when: inventory_hostname in groups['jumphost']
+  block:
+    - name: Config directory
+      ansible.builtin.file:
+        path: /etc/homelab
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: lab-check.conf (built from the inventory)
+      ansible.builtin.template:
+        src: lab-check.conf.j2
+        dest: /etc/homelab/lab-check.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: lab-check.sh
+      ansible.builtin.copy:
+        src: "{{ maintenance_scripts_dir }}/lab-check.sh"
+        dest: /usr/local/bin/lab-check.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Cron - lab-check every 15 minutes
+      ansible.builtin.cron:
+        name: homelab lab-check
+        cron_file: homelab-lab-check
+        user: root
+        minute: "{{ maintenance_cron_minute }}"
+        job: /usr/local/bin/lab-check.sh >/dev/null 2>&1

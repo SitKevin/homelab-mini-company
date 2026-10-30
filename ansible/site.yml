@@ -8,3 +8,4 @@
 - import_playbook: playbooks/db.yml       # db01: PostgreSQL
 - import_playbook: playbooks/ldap.yml     # db01: OpenLDAP
 - import_playbook: playbooks/web.yml      # web01: Gitea + Nginx
+- import_playbook: playbooks/maintenance.yml   # all hosts: health checks + cron

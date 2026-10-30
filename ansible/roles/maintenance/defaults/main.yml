@@ -1,0 +1,13 @@
+# Role "maintenance": health-check scripts + cron + log rotation.
+maintenance_scripts_dir: "{{ playbook_dir }}/../../scripts"
+maintenance_log_dir: /var/log/homelab
+maintenance_cron_minute: "*/15"
+
+# node-check.sh (every host)
+maintenance_disk_warn_pct: 80
+maintenance_mem_warn_mb: 100
+
+# lab-check.sh (bastion only)
+maintenance_gitea_url: https://git.sitkevin.duckdns.org
+maintenance_cert_host: git.sitkevin.duckdns.org
+maintenance_cert_warn_days: 14

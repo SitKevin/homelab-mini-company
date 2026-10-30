@@ -1,0 +1,8 @@
+# Health-check scripts + cron on every host (lab-check only on the bastion).
+# Dry run: ansible-playbook playbooks/maintenance.yml --check --diff
+# Apply:   ansible-playbook playbooks/maintenance.yml
+- name: Maintenance scripts
+  hosts: homelab
+  become: true
+  roles:
+    - maintenance

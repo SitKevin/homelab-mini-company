@@ -9,10 +9,10 @@ ansible-playbook site.yml                  # build / converge the whole homelab
 
 ansible all --list-hosts                   # what's in the inventory
 ansible homelab -m ping                    # SSH + Python on every node
-ansible-playbook playbooks/web.yml         # one tier only (common, dns, db, ldap, web)
+ansible-playbook playbooks/web.yml         # one tier only (common, dns, db, ldap, web, maintenance)
 ```
 
-`site.yml` runs the tiers in dependency order: **common** (all hosts) → **dns** (bastion) → **db** → **ldap** (db01) → **web** (web01). Every role is idempotent: a second run reports `changed=0`.
+`site.yml` runs the tiers in dependency order: **common** (all hosts) → **dns** (bastion) → **db** → **ldap** (db01) → **web** (web01) → **maintenance** (all). Every role is idempotent: a second run reports `changed=0`.
 
 | Path | Purpose |
 |---|---|
