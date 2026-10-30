@@ -1,0 +1,30 @@
+- name: Install Prometheus (Ubuntu package, includes promtool)
+  ansible.builtin.apt:
+    name: prometheus
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Startup options - listen on localhost only, retention
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus
+    regexp: '^ARGS='
+    line: 'ARGS="--web.listen-address={{ prometheus_listen }} --storage.tsdb.retention.time={{ prometheus_retention }}"'
+  notify: restart prometheus
+
+- name: prometheus.yml (targets built from the inventory)
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: root
+    group: root
+    mode: "0644"
+    validate: promtool check config %s      # never install a config Prometheus would reject
+  notify: reload prometheus
+
+- name: Prometheus is enabled and running
+  ansible.builtin.service:
+    name: prometheus
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"

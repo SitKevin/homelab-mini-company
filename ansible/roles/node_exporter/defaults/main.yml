@@ -1,0 +1,4 @@
+# Role "node_exporter": host metrics (CPU, RAM, disk, network) on :9100.
+node_exporter_port: 9100
+# Only the Prometheus server may scrape it (ufw). Everyone else is denied by default.
+node_exporter_allowed_from: "{{ mon01_ip }}"

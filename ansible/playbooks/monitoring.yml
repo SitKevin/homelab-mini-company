@@ -1,0 +1,14 @@
+# Monitoring: node_exporter everywhere, Prometheus on mon01.
+# Dry run: ansible-playbook playbooks/monitoring.yml --check --diff
+# Apply:   ansible-playbook playbooks/monitoring.yml
+- name: Exporters on every host
+  hosts: homelab
+  become: true
+  roles:
+    - node_exporter
+
+- name: Prometheus server
+  hosts: monitoring
+  become: true
+  roles:
+    - prometheus

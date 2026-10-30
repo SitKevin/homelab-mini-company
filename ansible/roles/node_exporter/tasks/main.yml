@@ -1,0 +1,24 @@
+- name: Install node_exporter (Ubuntu package)
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: node_exporter is enabled and running
+  ansible.builtin.service:
+    name: prometheus-node-exporter
+    state: started
+    enabled: true
+  # On a fresh host --check can't start a service that isn't installed yet
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# The rule lives in this role (not in host_vars): remove the role, remove the rule.
+- name: ufw - node_exporter only from the Prometheus server
+  community.general.ufw:
+    rule: allow
+    port: "{{ node_exporter_port | string }}"
+    proto: tcp
+    from_ip: "{{ node_exporter_allowed_from }}"
+    comment: node_exporter from mon01
+  when: inventory_hostname not in groups['monitoring']   # mon01 scrapes itself locally
