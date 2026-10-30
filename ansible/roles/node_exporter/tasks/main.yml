@@ -2,6 +2,7 @@
   ansible.builtin.apt:
     name: prometheus-node-exporter
     state: present
+    install_recommends: false   # skip ipmitool/smartmontools/nvme-cli... (useless on VMs)
     update_cache: true
     cache_valid_time: 3600
 

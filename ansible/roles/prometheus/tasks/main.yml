@@ -2,6 +2,7 @@
   ansible.builtin.apt:
     name: prometheus
     state: present
+    install_recommends: false   # minimal install: only hard dependencies
     update_cache: true
     cache_valid_time: 3600
 
@@ -10,6 +11,10 @@
     path: /etc/default/prometheus
     regexp: '^ARGS='
     line: 'ARGS="--web.listen-address={{ prometheus_listen }} --storage.tsdb.retention.time={{ prometheus_retention }}"'
+    create: true   # created by the package; only missing during --check on a fresh host
+    owner: root
+    group: root
+    mode: "0644"
   notify: restart prometheus
 
 - name: prometheus.yml (targets built from the inventory)
