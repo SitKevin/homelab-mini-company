@@ -1,0 +1,11 @@
+- name: restart alertmanager
+  ansible.builtin.service:
+    name: prometheus-alertmanager
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: reload alertmanager
+  ansible.builtin.service:
+    name: prometheus-alertmanager
+    state: reloaded
+  ignore_errors: "{{ ansible_check_mode }}"

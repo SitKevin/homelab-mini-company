@@ -17,6 +17,25 @@
     mode: "0644"
   notify: restart prometheus
 
+- name: Rules directory
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# copy (not template): the rules use Prometheus' own {{ $labels }} templating
+- name: Alerting rules (validated with promtool)
+  ansible.builtin.copy:
+    src: homelab-rules.yml
+    dest: /etc/prometheus/rules/homelab.yml
+    owner: root
+    group: root
+    mode: "0644"
+    validate: promtool check rules %s
+  notify: reload prometheus
+
 - name: prometheus.yml (targets built from the inventory)
   ansible.builtin.template:
     src: prometheus.yml.j2

@@ -7,10 +7,11 @@
   roles:
     - node_exporter
 
-- name: Prometheus server
+- name: Prometheus server + Alertmanager
   hosts: monitoring
   become: true
   roles:
+    - alertmanager
     - prometheus
 
 - name: Grafana

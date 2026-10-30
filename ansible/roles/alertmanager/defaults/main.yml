@@ -1,0 +1,4 @@
+# Role "alertmanager": routes Prometheus alerts to Discord (mon01).
+alertmanager_listen: 127.0.0.1:9093     # localhost only
+alertmanager_webhook_file: /etc/prometheus/alertmanager_discord_webhook
+# Secret (Vault): vault_discord_webhook_url - written to its own file, never into alertmanager.yml

@@ -1,0 +1,20 @@
+# /etc/prometheus/alertmanager.yml - managed by Ansible (role alertmanager)
+# No secret in this file: the Discord webhook URL is read from {{ alertmanager_webhook_file }}.
+route:
+  receiver: discord
+  group_by: [alertname, instance]
+  group_wait: 30s        # wait a bit to bundle alerts that fire together
+  group_interval: 5m
+  repeat_interval: 4h    # remind every 4h while the problem lasts
+
+receivers:
+  - name: discord
+    discord_configs:
+      - webhook_url_file: {{ alertmanager_webhook_file }}
+        send_resolved: true    # also tell us when it is fixed
+
+# A host that is down also "has" every other problem - only report the root cause.
+inhibit_rules:
+  - source_matchers: [alertname="InstanceDown"]
+    target_matchers: [severity="warning"]
+    equal: [instance]

@@ -1,0 +1,48 @@
+- name: Install Alertmanager (Ubuntu package, includes amtool)
+  ansible.builtin.apt:
+    name: prometheus-alertmanager
+    state: present
+    install_recommends: false
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Startup options - localhost only, no HA cluster port (9094)
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus-alertmanager
+    regexp: '^ARGS='
+    line: 'ARGS="--web.listen-address={{ alertmanager_listen }} --cluster.listen-address="'
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart alertmanager
+
+- name: Discord webhook URL (secret, own file, readable by the prometheus user only)
+  ansible.builtin.copy:
+    content: "{{ vault_discord_webhook_url }}"
+    dest: "{{ alertmanager_webhook_file }}"
+    owner: root
+    group: prometheus
+    mode: "0640"
+  no_log: true
+  diff: false
+  notify: restart alertmanager
+  ignore_errors: "{{ ansible_check_mode }}"   # group "prometheus" may not exist yet in --check
+
+- name: alertmanager.yml (validated with amtool)
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: /etc/prometheus/alertmanager.yml
+    owner: root
+    group: prometheus
+    mode: "0640"
+    validate: amtool check-config %s
+  notify: reload alertmanager
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Alertmanager is enabled and running
+  ansible.builtin.service:
+    name: prometheus-alertmanager
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"

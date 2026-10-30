@@ -1,0 +1,42 @@
+# /etc/prometheus/rules/homelab.yml - alerting rules (managed by Ansible, role prometheus)
+# "for:" = the condition must last that long before an alert fires (no alert on a 5-second blip).
+groups:
+  - name: homelab
+    rules:
+      - alert: InstanceDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} is DOWN"
+          description: "node_exporter on {{ $labels.instance }} has not answered for 2 minutes (host down, network or exporter stopped)."
+
+      - alert: DiskAlmostFull
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+             / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} on {{ $labels.instance }} is {{ $value | printf \"%.0f\" }}% full"
+          description: "Free space before services start failing."
+
+      - alert: MemoryLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Only {{ $value | printf \"%.0f\" }}% memory available on {{ $labels.instance }}"
+          description: "Check the biggest processes (top / Grafana) before the OOM killer does."
+
+      - alert: SystemdUnitFailed
+        expr: node_systemd_unit_state{state="failed"} == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} failed on {{ $labels.instance }}"
+          description: "systemctl status {{ $labels.name }} / journalctl -u {{ $labels.name }}"
