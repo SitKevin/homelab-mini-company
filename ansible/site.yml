@@ -1,0 +1,10 @@
+# Whole homelab in one command:
+#   ansible-playbook site.yml --check --diff     # dry run, everything
+#   ansible-playbook site.yml                    # apply
+# Order matters: baseline first, then DNS (everyone resolves names through it),
+# then data services, then the web tier that depends on them.
+- import_playbook: playbooks/common.yml   # all hosts: SSH, ufw, fail2ban, CA
+- import_playbook: playbooks/dns.yml      # bastion: BIND9
+- import_playbook: playbooks/db.yml       # db01: PostgreSQL
+- import_playbook: playbooks/ldap.yml     # db01: OpenLDAP
+- import_playbook: playbooks/web.yml      # web01: Gitea + Nginx
