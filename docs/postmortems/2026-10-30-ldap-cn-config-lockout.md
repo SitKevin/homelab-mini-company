@@ -83,4 +83,4 @@ Verification:
 
 - [x] `olcSecurity: ssf=1` on db01
 - [x] Repo: `configs/ldap/tls.ldif`, Ansible role `openldap`, `docs/phase2-services.md` updated
-- [ ] Add the admin-path check (`sudo ldapwhoami -Y EXTERNAL -H ldapi:///`) to the LDAP runbook
+- [x] Admin-path check (`sudo ldapwhoami -Q -Y EXTERNAL -H ldapi:///`) added to the [user-management runbook](../runbooks/user-management.md#health-check-after-any-ldap-change)

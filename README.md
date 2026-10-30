@@ -2,9 +2,11 @@
 
 > A simulated IT infrastructure for a small company (~20 employees), built entirely with free and open-source software on VMware Workstation.
 
-![Status](https://img.shields.io/badge/status-in%20progress-yellow)
+![Status](https://img.shields.io/badge/status-complete-brightgreen)
 ![OS](https://img.shields.io/badge/OS-Ubuntu%20Server%20LTS-orange)
 ![Automation](https://img.shields.io/badge/automation-Ansible-red)
+![Monitoring](https://img.shields.io/badge/monitoring-Prometheus%20%2B%20Grafana-orange)
+![Backup](https://img.shields.io/badge/backup-restic-blue)
 
 ---
 
@@ -13,12 +15,33 @@
 This project demonstrates core system administration skills:
 
 - **Build** — provision and configure Linux servers with a secure baseline
-- **Automate** — rebuild the entire environment with a single Ansible command
+- **Automate** — converge the entire environment with a single Ansible command
 - **Monitor** — collect metrics and send alerts when something breaks
 - **Back up & restore** — schedule backups and *actually test* restoring them
 - **Document** — write runbooks and postmortems like a real ops team
 
 **Constraints:** 16 GB RAM host, zero cost, open-source only.
+
+### ✨ Highlights
+
+- **4 Ubuntu servers, 15 Ansible roles, one command:** `ansible-playbook site.yml` converges everything; a re-run reports `changed=0` on every host. Secrets in Ansible Vault.
+- **Security by default:** ufw default-deny everywhere, SSH keys only through a bastion, services bound to `127.0.0.1` behind Nginx or SSH tunnels, database and LDAP reachable from web01 only, TLS everywhere (Let's Encrypt via DNS-01 behind NAT, internal CA for LDAP).
+- **Central identity:** Gitea logs in against OpenLDAP; only the `staff` group gets in — removing someone from a group removes their access.
+- **Monitoring that pages:** Prometheus, Grafana and 9 alert rules delivered to Discord (host down, disk, memory, failed units, PostgreSQL, HTTPS endpoint, certificate expiry, backup failed / too old).
+- **Backups that are proven:** nightly encrypted restic snapshots of Gitea, PostgreSQL and LDAP, monitored by Prometheus; restore verified against the live data.
+- **Run like an ops team:** dry runs (`--check --diff`) and canaries before changes, runbooks, and blameless postmortems of real incidents.
+
+### 🧰 Tech stack
+
+| Area | Tools |
+|---|---|
+| Virtualisation / OS | VMware Workstation, Ubuntu Server 26.04 LTS |
+| Network & access | BIND9 (DNSSEC), OpenSSH (ProxyJump), ufw, fail2ban |
+| Services | Nginx, Gitea, PostgreSQL, OpenLDAP |
+| TLS | Let's Encrypt (acme.sh, DNS-01 via DuckDNS), internal CA (OpenSSL) |
+| Automation | Ansible (roles, Vault), Bash, cron, systemd timers |
+| Monitoring | Prometheus, node / postgres / blackbox exporters, Alertmanager → Discord, Grafana |
+| Backup | restic over SFTP |
 
 ---
 
@@ -50,6 +73,9 @@ This project demonstrates core system administration skills:
 | Gitea   | `https://git.sitkevin.duckdns.org` | web01 | Nginx → `127.0.0.1:3000`, Let's Encrypt cert, auto-renew via acme.sh |
 | PostgreSQL | `192.168.196.12:5432` | db01 | Only reachable from web01 (ufw + `pg_hba.conf`) |
 | OpenLDAP | `ldap://db01.homelab.internal:389` (StartTLS) | db01 | Only from web01; internal CA `configs/ldap/homelab-ca.crt` |
+| Grafana | `http://localhost:3000` via `ssh -L 3000:127.0.0.1:3000 mon01` | mon01 | Prometheus, Alertmanager and Grafana listen on `127.0.0.1` only |
+| Alerts | Discord channel | mon01 → Discord | Alertmanager webhook, FIRING + RESOLVED |
+| Backups | `sftp://mon01/srv/restic/<host>` | web01, db01 → mon01 | restic, nightly systemd timer, one SFTP-only user per host |
 
 > The DuckDNS name resolves to a **private** IP — nothing is exposed to the internet. The certificate is obtained with the DNS-01 challenge, which doesn't require inbound access.
 
@@ -57,12 +83,14 @@ This project demonstrates core system administration skills:
 
 ## 🛣️ Roadmap
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✅
 - [x] Build a template VM and clone it
 - [x] Configure static IPs and hostnames
 - [x] Internal DNS resolution (BIND9 on bastion, `homelab.internal`, DNSSEC-validating forwarders)
 - [x] SSH key authentication (bastion → all nodes, Windows → all nodes via ProxyJump)
 - [x] Hardening: disable password login, UFW, fail2ban
+
+📄 Template, DNS/DNSSEC debugging, SSH and firewall: [`docs/phase1-foundation.md`](docs/phase1-foundation.md)
 
 ### Phase 2 — Services ✅
 - [x] PostgreSQL on db01 (dedicated non-superuser role, web01-only access, TLS)
@@ -89,17 +117,11 @@ This project demonstrates core system administration skills:
 
 📄 Monitoring architecture, alert rules, backup design, restore results: [`docs/phase4-monitoring-backup.md`](docs/phase4-monitoring-backup.md)
 
-### Phase 5 — Documentation
-- [ ] Finalize this README
+### Phase 5 — Documentation ✅
+- [x] Finalize this README
 - [x] Architecture diagram
-- [ ] Runbooks
-- [ ] Postmortems
-
-### Optional extensions
-- [ ] Docker
-- [ ] Active Directory
-- [ ] Loki (centralized logs)
-- [ ] HAProxy + keepalived (high availability)
+- [x] Runbooks: [alerts](docs/runbooks/alerts.md), [restore](docs/runbooks/restore.md), [user management](docs/runbooks/user-management.md)
+- [x] Postmortems: [2 real incidents](docs/postmortems/README.md)
 
 ---
 
@@ -107,17 +129,18 @@ This project demonstrates core system administration skills:
 
 ```
 .
-├── ansible/          # Inventory, playbooks, roles
-├── scripts/          # Bash scripts (backup, health checks, ...)
-├── configs/          # Reference config files
+├── ansible/          # site.yml, playbooks, 15 roles, inventory, Vault
+├── scripts/          # node-check.sh, lab-check.sh, restic-backup.sh
+├── configs/          # Reference config files used by the roles
 ├── docs/
-│   ├── phase2-services.md   # Phase 2 build log + debugging notes
-│   ├── phase3-automation.md # Phase 3 Ansible + scripts
-│   ├── phase4-monitoring-backup.md # Phase 4 monitoring + backup
-│   ├── screenshots/  # Evidence per phase
-│   ├── diagrams/     # Architecture diagram
-│   ├── runbooks/     # Step-by-step operational procedures
-│   └── postmortems/  # Incident write-ups
+│   ├── phase1-foundation.md        # VMs, DNS/DNSSEC, SSH, firewall
+│   ├── phase2-services.md          # PostgreSQL, Gitea, Nginx + SSL, OpenLDAP
+│   ├── phase3-automation.md        # Ansible roles, Vault, health checks
+│   ├── phase4-monitoring-backup.md # Prometheus, Grafana, alerts, restic
+│   ├── runbooks/                   # alerts, restore, user management
+│   ├── postmortems/                # incident write-ups
+│   ├── diagrams/                   # architecture diagram
+│   └── screenshots/                # evidence per phase
 └── README.md
 ```
 
@@ -134,9 +157,3 @@ ansible-playbook site.yml                  # converge the whole homelab
 ```
 
 Secrets come from Ansible Vault (`~/.ansible/vault_pass` on the bastion). Details: [`ansible/README.md`](ansible/README.md).
-
----
-
-## 📄 License
-
-MIT

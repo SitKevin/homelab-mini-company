@@ -68,7 +68,7 @@
 
 First run: web01 9 s, db01 10 s (≈ 45 MB RAM peak), `restic check`: no errors.
 
-> Lab note: everything still runs on one physical Windows host. A 3-2-1 setup would add an off-site copy (e.g. a free cloud bucket) — listed as an extension.
+> Lab note: everything still runs on one physical Windows host. A 3-2-1 setup would add an off-site copy (e.g. a free cloud bucket).
 
 ---
 
