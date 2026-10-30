@@ -1,0 +1,20 @@
+postgresql_version: 18
+postgresql_conf_dir: "/etc/postgresql/{{ postgresql_version }}/main"
+
+# Server settings, applied with ALTER SYSTEM (postgresql_set).
+# The module compares with the RUNNING value, so nothing changes if it already matches.
+postgresql_settings:
+  listen_addresses: "localhost,{{ db01_ip }}"   # loopback + private IP only, never '*'
+  ssl: "on"                                     # Ubuntu snakeoil cert; Gitea uses SSL_MODE=require
+
+# Application databases and their dedicated, non-superuser roles
+postgresql_users:
+  - name: gitea
+    password: "{{ vault_gitea_db_password }}"
+postgresql_databases:
+  - name: gitea
+    owner: gitea
+
+# pg_hba.conf: who may connect to what, from where
+postgresql_hba_entries:
+  - { db: gitea, user: gitea, address: "{{ web01_ip }}/32", method: scram-sha-256 }

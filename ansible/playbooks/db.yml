@@ -1,0 +1,8 @@
+# PostgreSQL on db01.
+# Dry run: ansible-playbook playbooks/db.yml --check --diff
+# Apply:   ansible-playbook playbooks/db.yml
+- name: Database server
+  hosts: db
+  become: true
+  roles:
+    - postgresql

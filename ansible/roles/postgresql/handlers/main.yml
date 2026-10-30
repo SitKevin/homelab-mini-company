@@ -1,0 +1,10 @@
+# listen_addresses / ssl need a full restart; pg_hba.conf only a reload.
+- name: restart postgresql
+  ansible.builtin.service:
+    name: postgresql
+    state: restarted
+
+- name: reload postgresql
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded

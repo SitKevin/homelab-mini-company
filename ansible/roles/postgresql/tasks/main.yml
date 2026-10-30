@@ -1,0 +1,64 @@
+# Role "postgresql": database server on db01 (Phase 2 step 1, as code).
+
+- name: Install PostgreSQL (+ psycopg2, needed by the community.postgresql modules)
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - python3-psycopg2
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: PostgreSQL is enabled and running
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Server settings (ALTER SYSTEM)
+  community.postgresql.postgresql_set:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+  loop: "{{ postgresql_settings | dict2items }}"
+  loop_control:
+    label: "{{ item.key }} = {{ item.value }}"
+  become_user: postgres
+  register: pg_settings
+  notify: restart postgresql
+
+- name: pg_hba.conf entries (one line per app, exact source IP)
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_conf_dir }}/pg_hba.conf"
+    regexp: '^host\s+{{ item.db }}\s+{{ item.user }}\s+'
+    line: "host    {{ item.db }}    {{ item.user }}    {{ item.address }}    {{ item.method }}"
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  loop: "{{ postgresql_hba_entries }}"
+  loop_control:
+    label: "{{ item.db }}/{{ item.user }} <- {{ item.address }}"
+  notify: reload postgresql
+
+- name: Application roles (LOGIN, not superuser)
+  community.postgresql.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE
+  loop: "{{ postgresql_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become_user: postgres
+  no_log: true          # never print passwords, even with -v
+
+- name: Application databases (UTF8, template0 as recommended by Gitea)
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner }}"
+    encoding: UTF8
+    lc_collate: en_US.UTF-8
+    lc_ctype: en_US.UTF-8
+    template: template0
+  loop: "{{ postgresql_databases }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become_user: postgres
