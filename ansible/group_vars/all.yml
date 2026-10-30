@@ -1,0 +1,8 @@
+# Variables shared by every host
+domain: homelab.internal
+lan_cidr: 192.168.196.0/24
+admin_ip: 192.168.196.1
+bastion_ip: 192.168.196.10
+web01_ip: 192.168.196.11
+db01_ip: 192.168.196.12
+mon01_ip: 192.168.196.13
