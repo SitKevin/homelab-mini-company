@@ -1,13 +1,17 @@
 # Role "postgresql": database server on db01 (Phase 2 step 1, as code).
 
-- name: Install PostgreSQL (+ psycopg2, needed by the community.postgresql modules)
+- name: Install psycopg2 (needed by community.postgresql modules, even in --check)
   ansible.builtin.apt:
-    name:
-      - postgresql
-      - python3-psycopg2
+    name: python3-psycopg2
     state: present
     update_cache: true
     cache_valid_time: 3600
+  check_mode: false     # a library install is harmless; without it --check can't inspect the DB
+
+- name: Install PostgreSQL
+  ansible.builtin.apt:
+    name: postgresql
+    state: present
 
 - name: PostgreSQL is enabled and running
   ansible.builtin.service:
