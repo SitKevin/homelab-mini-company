@@ -2,3 +2,5 @@
 node_exporter_port: 9100
 # Only the Prometheus server may scrape it (ufw). Everyone else is denied by default.
 node_exporter_allowed_from: "{{ mon01_ip }}"
+# Extra collectors recommended by the "Node Exporter Full" dashboard
+node_exporter_args: "--collector.systemd --collector.processes"

@@ -1,0 +1,10 @@
+# Managed by Ansible (role grafana)
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus            # fixed uid: provisioned dashboards reference it
+    type: prometheus
+    access: proxy
+    url: {{ grafana_prometheus_url }}
+    isDefault: true
+    editable: false

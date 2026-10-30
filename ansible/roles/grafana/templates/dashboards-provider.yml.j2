@@ -1,0 +1,9 @@
+# Managed by Ansible (role grafana)
+apiVersion: 1
+providers:
+  - name: homelab
+    folder: Homelab
+    type: file
+    disableDeletion: true
+    options:
+      path: {{ grafana_dashboards_dir }}

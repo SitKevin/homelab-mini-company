@@ -3,8 +3,10 @@
   ansible.builtin.service:
     name: prometheus
     state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"   # fresh host: service doesn't exist during --check
 
 - name: reload prometheus
   ansible.builtin.service:
     name: prometheus
     state: reloaded
+  ignore_errors: "{{ ansible_check_mode }}"

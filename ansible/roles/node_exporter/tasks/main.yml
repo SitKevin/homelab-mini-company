@@ -6,6 +6,17 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: node_exporter options (extra collectors)
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus-node-exporter
+    regexp: '^ARGS='
+    line: 'ARGS="{{ node_exporter_args }}"'
+    create: true   # created by the package; only missing during --check on a fresh host
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart node_exporter
+
 - name: node_exporter is enabled and running
   ansible.builtin.service:
     name: prometheus-node-exporter

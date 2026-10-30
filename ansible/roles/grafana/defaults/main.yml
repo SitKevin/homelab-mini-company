@@ -1,0 +1,13 @@
+# Role "grafana": dashboards on mon01, reached through an SSH tunnel.
+grafana_http_addr: 127.0.0.1          # localhost only
+grafana_http_port: 3000
+grafana_prometheus_url: "http://{{ prometheus_listen | default('127.0.0.1:9090') }}"
+
+# Dashboards from grafana.com, pinned to a revision (same result on every rebuild)
+grafana_dashboards:
+  - { id: 1860, revision: 45, file: node-exporter-full.json }   # Node Exporter Full
+grafana_dashboards_dir: /var/lib/grafana/dashboards
+
+# Secret (Vault): vault_grafana_admin_password
+# NOTE: Grafana only reads admin_password when its database is created (first start).
+# To change it later: sudo grafana-cli admin reset-admin-password '<new>'

@@ -12,3 +12,9 @@
   become: true
   roles:
     - prometheus
+
+- name: Grafana
+  hosts: monitoring
+  become: true
+  roles:
+    - grafana

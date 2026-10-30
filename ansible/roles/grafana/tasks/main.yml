@@ -1,0 +1,112 @@
+# ------------------------------------------------------------------ package (official Grafana repo)
+- name: python3-debian (needed by deb822_repository, even in --check)
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+    install_recommends: false
+  check_mode: false
+
+- name: Grafana apt repository (signed with Grafana's key)
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: deb
+    uris: https://apt.grafana.com
+    suites: stable
+    components: main
+    signed_by: https://apt.grafana.com/gpg.key
+
+- name: Install Grafana OSS
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    install_recommends: false
+    update_cache: true
+  ignore_errors: "{{ ansible_check_mode }}"   # repo isn't really added during --check
+
+# ------------------------------------------------------------------ grafana.ini
+- name: grafana.ini - settings
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  loop:
+    - { section: server,    option: http_addr,         value: "{{ grafana_http_addr }}" }
+    - { section: server,    option: http_port,         value: "{{ grafana_http_port | string }}" }
+    - { section: users,     option: allow_sign_up,     value: "false" }
+    - { section: analytics, option: reporting_enabled, value: "false" }
+  loop_control:
+    label: "[{{ item.section }}] {{ item.option }} = {{ item.value }}"
+  notify: restart grafana
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: grafana.ini - admin password (from Vault, used on first start)
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: security
+    option: admin_password
+    value: "{{ vault_grafana_admin_password }}"
+  no_log: true
+  notify: restart grafana
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# ------------------------------------------------------------------ provisioning (as code, no clicking)
+- name: Datasource Prometheus
+  ansible.builtin.template:
+    src: datasource-prometheus.yml.j2
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Dashboard provider
+  ansible.builtin.template:
+    src: dashboards-provider.yml.j2
+    dest: /etc/grafana/provisioning/dashboards/homelab.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Dashboards directory
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dir }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Download dashboards (pinned revision; skipped if the file exists)
+  ansible.builtin.get_url:
+    url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/{{ item.revision }}/download"
+    dest: "{{ grafana_dashboards_dir }}/{{ item.file }}"
+    owner: grafana
+    group: grafana
+    mode: "0644"
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.id }} rev {{ item.revision }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# Dashboards exported from grafana.com contain a ${DS_PROMETHEUS} placeholder that
+# only the "Import" UI fills in; for file provisioning we point it to our datasource uid.
+- name: Point dashboards at the Prometheus datasource
+  ansible.builtin.replace:
+    path: "{{ grafana_dashboards_dir }}/{{ item.file }}"
+    regexp: '\$\{DS_PROMETHEUS\}'
+    replace: prometheus
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.file }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Grafana is enabled and running
+  ansible.builtin.service:
+    name: grafana-server
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"
