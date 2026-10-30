@@ -1,6 +1,9 @@
 # Apply: sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f tls.ldif
 # Key BEFORE cert, otherwise slapd may reject the change with error (80).
-# olcSecurity tls=1 -> any bind without StartTLS fails with "Confidentiality required (13)".
+# olcSecurity ssf=1 -> a plain (unencrypted) network connection fails with "Confidentiality required (13)";
+#   StartTLS (ssf >= 128) and the local ldapi:/// socket (ssf 71) are allowed.
+# Do NOT use tls=1: it requires a TLS layer, which ldapi:/// never has, so root can no longer
+#   change cn=config with -Y EXTERNAL (see docs/postmortems/2026-10-30-ldap-cn-config-lockout.md).
 dn: cn=config
 changetype: modify
 replace: olcTLSCACertificateFile
@@ -13,4 +16,4 @@ replace: olcTLSCertificateFile
 olcTLSCertificateFile: /etc/ldap/tls/ldap.crt
 -
 replace: olcSecurity
-olcSecurity: tls=1
+olcSecurity: ssf=1

@@ -170,7 +170,7 @@ dc=homelab,dc=internal
 | No anonymous read | [`acl.ldif`](../configs/ldap/acl.ldif): `to * by users read by * none` | Ubuntu's default `to * by * read` exposes the whole staff directory to anyone on the LAN |
 | Passwords unreadable | `to attrs=userPassword by self write by anonymous auth by * none` | Even the bind account can't read hashes — they are only usable to authenticate |
 | Internal CA + TLS | [`make-ca.sh`](../configs/ldap/make-ca.sh), [`tls.ldif`](../configs/ldap/tls.ldif), CA cert [`homelab-ca.crt`](../configs/ldap/homelab-ca.crt) | `.internal` can't get a Let's Encrypt cert → own CA, cert with SAN `db01.homelab.internal` |
-| TLS mandatory | `olcSecurity: tls=1` | A client that forgets StartTLS is rejected instead of sending passwords in clear text |
+| Encryption mandatory | `olcSecurity: ssf=1` | A client that forgets StartTLS is rejected instead of sending passwords in clear text. *Not* `tls=1`: that also blocks the local `ldapi:///` socket and locks root out of `cn=config` — see [postmortem](postmortems/2026-10-30-ldap-cn-config-lockout.md) |
 | Firewall | ufw: 389/tcp from web01 only | Same pattern as PostgreSQL |
 
 > `cn=config` is changed with `sudo ldapmodify -Y EXTERNAL -H ldapi:///` — the local socket authenticates the Linux root user, so no LDAP password is needed and you can't lock yourself out with a bad ACL.

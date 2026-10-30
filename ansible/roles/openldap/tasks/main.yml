@@ -83,13 +83,13 @@
       olcTLSCertificateFile: /etc/ldap/tls/ldap.crt
     state: exact
 
-- name: Require TLS for every bind (olcSecurity tls=1)
+- name: Require an encrypted or local connection (olcSecurity ssf=1)
   community.general.ldap_attrs:
     server_uri: ldapi:///
     sasl_class: external
     dn: cn=config
     attributes:
-      olcSecurity: tls=1
+      olcSecurity: ssf=1   # NOT tls=1: that also blocks ldapi:/// -> root locked out of cn=config
     state: exact
 
 - name: ACL - no anonymous read, password hashes never readable
