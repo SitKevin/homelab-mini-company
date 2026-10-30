@@ -40,3 +40,30 @@ groups:
         annotations:
           summary: "{{ $labels.name }} failed on {{ $labels.instance }}"
           description: "systemctl status {{ $labels.name }} / journalctl -u {{ $labels.name }}"
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL on {{ $labels.instance }} is DOWN"
+          description: "postgres_exporter cannot connect - Gitea is down too. systemctl status postgresql"
+
+      - alert: EndpointDown
+        expr: probe_success{job="blackbox_https"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} is unreachable"
+          description: "HTTPS probe from mon01 fails (DNS, Nginx, Gitea or certificate problem)."
+
+      - alert: CertificateExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry{job="blackbox_https"} - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Certificate of {{ $labels.instance }} expires in {{ $value | printf \"%.0f\" }} days"
+          description: "acme.sh should have renewed it ~30 days before expiry. Check the root crontab on web01 and /root/.acme.sh logs."

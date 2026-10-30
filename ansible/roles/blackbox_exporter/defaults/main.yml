@@ -1,0 +1,2 @@
+# Role "blackbox_exporter": probes services FROM THE OUTSIDE (mon01), like a user would.
+blackbox_listen: 127.0.0.1:9115   # localhost only - only Prometheus (same host) talks to it

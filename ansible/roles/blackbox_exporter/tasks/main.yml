@@ -1,0 +1,36 @@
+- name: Install blackbox_exporter (Ubuntu package)
+  ansible.builtin.apt:
+    name: prometheus-blackbox-exporter
+    state: present
+    install_recommends: false
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Startup options - localhost only
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus-blackbox-exporter
+    regexp: '^ARGS='
+    line: 'ARGS="--config.file=/etc/prometheus/blackbox.yml --web.listen-address={{ blackbox_listen }}"'
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart blackbox_exporter
+
+- name: blackbox.yml (validated before install)
+  ansible.builtin.copy:
+    src: blackbox.yml
+    dest: /etc/prometheus/blackbox.yml
+    owner: root
+    group: root
+    mode: "0644"
+    validate: prometheus-blackbox-exporter --config.check --config.file=%s
+  notify: restart blackbox_exporter
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: blackbox_exporter is enabled and running
+  ansible.builtin.service:
+    name: prometheus-blackbox-exporter
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"

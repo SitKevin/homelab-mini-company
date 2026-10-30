@@ -1,0 +1,5 @@
+- name: restart blackbox_exporter
+  ansible.builtin.service:
+    name: prometheus-blackbox-exporter
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"

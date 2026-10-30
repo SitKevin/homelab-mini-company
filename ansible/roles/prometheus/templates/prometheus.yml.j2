@@ -24,3 +24,30 @@ scrape_configs:
         labels:
           instance: {{ h }}
 {% endfor %}
+
+  # PostgreSQL metrics from every host of the "db" group
+  - job_name: postgres
+    static_configs:
+{% for h in groups['db'] %}
+      - targets: ["{{ hostvars[h].ansible_host }}:9187"]
+        labels:
+          instance: {{ h }}
+{% endfor %}
+
+  # Blackbox: Prometheus asks the exporter to probe each URL (standard relabelling)
+  - job_name: blackbox_https
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+{% for url in prometheus_blackbox_targets %}
+          - {{ url }}
+{% endfor %}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target     # the URL to probe
+      - source_labels: [__param_target]
+        target_label: instance           # show the URL, not the exporter address
+      - target_label: __address__
+        replacement: {{ prometheus_blackbox_listen }}   # scrape the exporter itself

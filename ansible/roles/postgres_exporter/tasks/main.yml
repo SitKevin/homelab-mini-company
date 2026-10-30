@@ -1,0 +1,47 @@
+- name: Install postgres_exporter (Ubuntu package)
+  ansible.builtin.apt:
+    name: prometheus-postgres-exporter
+    state: present
+    install_recommends: false
+    update_cache: true
+    cache_valid_time: 3600
+
+# pg_monitor = read statistics views only, no access to table data
+- name: DB role "prometheus" (LOGIN, member of pg_monitor, no password)
+  community.postgresql.postgresql_user:
+    name: prometheus
+    role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE
+  become_user: postgres
+
+- name: Grant pg_monitor
+  community.postgresql.postgresql_membership:
+    groups: [pg_monitor]
+    target_roles: [prometheus]
+    state: present
+  become_user: postgres
+
+- name: Connection string (Unix socket + peer auth)
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus-postgres-exporter
+    regexp: '^DATA_SOURCE_NAME='
+    line: 'DATA_SOURCE_NAME="{{ postgres_exporter_dsn }}"'
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart postgres_exporter
+
+- name: postgres_exporter is enabled and running
+  ansible.builtin.service:
+    name: prometheus-postgres-exporter
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: ufw - postgres_exporter only from the Prometheus server
+  community.general.ufw:
+    rule: allow
+    port: "{{ postgres_exporter_port | string }}"
+    proto: tcp
+    from_ip: "{{ postgres_exporter_allowed_from }}"
+    comment: postgres_exporter from mon01

@@ -7,10 +7,17 @@
   roles:
     - node_exporter
 
-- name: Prometheus server + Alertmanager
+- name: PostgreSQL exporter
+  hosts: db
+  become: true
+  roles:
+    - postgres_exporter
+
+- name: Prometheus server + Alertmanager + blackbox
   hosts: monitoring
   become: true
   roles:
+    - blackbox_exporter
     - alertmanager
     - prometheus
 
