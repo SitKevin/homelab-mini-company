@@ -89,7 +89,7 @@ This project demonstrates core system administration skills:
 
 ### Phase 5 — Documentation
 - [ ] Finalize this README
-- [x] Network diagram (draw.io)
+- [x] Architecture diagram
 - [ ] Runbooks
 - [ ] Postmortems
 
@@ -112,7 +112,7 @@ This project demonstrates core system administration skills:
 │   ├── phase2-services.md   # Phase 2 build log + debugging notes
 │   ├── phase3-automation.md # Phase 3 Ansible + scripts
 │   ├── screenshots/  # Evidence per phase
-│   ├── diagrams/     # draw.io network diagrams
+│   ├── diagrams/     # Architecture diagram
 │   ├── runbooks/     # Step-by-step operational procedures
 │   └── postmortems/  # Incident write-ups
 └── README.md
